@@ -1,0 +1,29 @@
+{
+  "name": "indexer",
+  "version": "0.0.1",
+  "scripts": {
+    "clean:dist": "rimraf dist/",
+    "build:dev": "npm run clean:dist && tsc",
+    "start": "npm run build:dev && concurrently \"tsc -w\" \"npm run watch\"",
+    "watch": "sleep 3 && nodemon --watch dist dist/main.js"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "inversify": "^5.0.1",
+    "pg": "^7.7.1",
+    "puppeteer": "^1.11.0",
+    "reflect-metadata": "^0.1.12",
+    "rxjs": "^6.3.3",
+    "typescript": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^10.12.12",
+    "@types/pg": "^7.4.11",
+    "@types/puppeteer": "^1.11.0",
+    "concurrently": "^4.1.0",
+    "nodemon": "^1.18.7",
+    "rimraf": "^2.6.2",
+    "tslib": "^1.9.3",
+    "tslint": "^5.12.1"
+  }
+}
