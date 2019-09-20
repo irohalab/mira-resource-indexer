@@ -1,5 +1,6 @@
 import { Container } from 'inversify';
 import 'reflect-metadata';
+import { Error } from 'tslint/lib/error';
 import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
@@ -30,11 +31,21 @@ switch (config.mode) {
 
 const scraper = container.get<Scraper>(TYPES.Scraper);
 
+// clean up
+process.on('exit', async () => {
+    await store.onEnd();
+});
+
+// catches Ctrl+C event
+process.on('SIGINT', async () => {
+    await scraper.end();
+    process.exit();
+});
+
 (async () => {
     await store.onStart();
     await scraper.start();
     await scraper.end();
-    await store.onEnd();
 })().catch((e) => {
     console.error(e ? e.stack : 'unknown error');
 });
