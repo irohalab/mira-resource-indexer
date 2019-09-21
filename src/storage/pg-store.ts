@@ -9,7 +9,7 @@ import { PersistentStorage } from '../types';
 import { CREATE_TABLE_WITH_NUM_ID, CREATE_TABLE_WITH_STRING_ID } from './database-constant';
 
 @injectable()
-export class DBStore<T> implements PersistentStorage<T> {
+export class PostgresStore<T> implements PersistentStorage<T> {
     private _pool: Pool;
     private _tableNames = ['item', 'item_type', 'team', 'publisher', 'media_file'];
 
