@@ -4,7 +4,7 @@ import { Error } from 'tslint/lib/error';
 import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
-import { DBStore } from './storage/db-store';
+import { PostgresStore } from './storage/pg-store';
 import { PersistentStorage, Scraper, TYPES } from './types';
 
 const config = ConfigManager.getInstance();
@@ -16,12 +16,12 @@ let store: PersistentStorage<number|string>;
 
 switch (config.mode) {
     case ConfigManager.DMHY:
-        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(DBStore).inSingletonScope();
+        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(PostgresStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(DmhyScraper).inSingletonScope();
         store = container.get<PersistentStorage<number>>(TYPES.PersistentStorage);
         break;
     case ConfigManager.BANGUMI_MOE:
-        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(DBStore).inSingletonScope();
+        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(PostgresStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(BangumiMoe).inSingletonScope();
         store = container.get<PersistentStorage<string>>(TYPES.PersistentStorage);
         break;
