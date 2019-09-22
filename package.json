@@ -2,7 +2,7 @@
   "name": "indexer",
   "version": "0.0.1",
   "scripts": {
-    "clean:dist": "rimraf dist/",
+    "clean:dist": "rimraf dist/*",
     "build:dev": "npm run clean:dist && tsc",
     "start": "npm run build:dev && concurrently \"tsc -w\" \"npm run watch\"",
     "watch": "sleep 3 && nodemon --watch dist dist/main.js"
