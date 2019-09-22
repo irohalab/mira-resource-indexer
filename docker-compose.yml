@@ -11,6 +11,8 @@ services:
 
   main:
     build: .
+    cap_add:
+      - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker 
     image: "indexer"
     command: yarn start
     environment:
