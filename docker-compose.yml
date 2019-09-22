@@ -1,0 +1,27 @@
+version: "3.7"
+services:
+  pg:
+    image: postgres:11.5
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "123456"
+      POSTGRES_DB: "dmhy_indexer"
+
+  main:
+    build: .
+    image: "indexer"
+    command: yarn start
+    environment:
+      INDEXER_MODE: "dmhy"
+      DB_HOST: "pg"
+      DB_PORT: "5432"
+      DB_USER: "postgres"
+      DB_NAME: "dmhy_indexer"
+      DB_PASS: "123456"
+    volumes:
+      - ".:/irohalab/indexer"
+      - "/irohalab/indexer/node_modules"
+    depends_on:
+      - pg
