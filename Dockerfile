@@ -6,4 +6,5 @@ RUN usermod -a -G audio,video node
 USER node
 COPY package.json yarn.lock ./
 RUN yarn install
+RUN mkdir dist
 COPY . .
