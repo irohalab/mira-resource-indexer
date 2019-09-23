@@ -41,12 +41,12 @@ You can start container by:
 ```
 $ docker-compose up --build
 ```
-To run it in background (detached mode), just add `-d` option, just add `-d` option
+To run it in background (detached mode), just add `-d` option
 ```
 $ docker-compose up --build -d
 ```
 
-- run `main` container in bash mode
+- Run `main` container in bash mode
 
 ```
 $ docker-compose start pg
