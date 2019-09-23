@@ -43,7 +43,7 @@ To run it in background (detached mode), just add `-d` option
 $ docker-compose up --build -d
 ```
 
-Create a `main` container and enter bash:
+To run `main` container in bash mode, just use below command:
 
 ```
 $ docker-compose start pg
