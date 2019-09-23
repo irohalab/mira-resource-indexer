@@ -34,16 +34,19 @@ set the following environment variable.
 
 ### Boot up
 
+You can start container by:
+
+- Start all service defined in docker-compose.yml using docker-compose up
+
 ```
 $ docker-compose up --build
 ```
-
-To run it in background (detached mode), just add `-d` option
+To run it in background (detached mode), just add `-d` option, just add `-d` option
 ```
 $ docker-compose up --build -d
 ```
 
-To run `main` container in bash mode, just use below command:
+- run `main` container in bash mode
 
 ```
 $ docker-compose start pg
