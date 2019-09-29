@@ -22,7 +22,7 @@ export class DmhyScraper implements Scraper {
         this._browser = await launch();
         const page = await this._browser.newPage();
         const items = await this.scrapListPage(page);
-        console.log(items);
+        // console.log(items);
         for (let item of items) {
             await this.scrapDetailPage(this._browser, item);
         }

@@ -5,6 +5,7 @@ import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
 import { PostgresStore } from './storage/pg-store';
+import { MongodbStore } from './storage/mongodb-store';
 import { PersistentStorage, Scraper, TYPES } from './types';
 
 const config = ConfigManager.getInstance();
@@ -13,15 +14,27 @@ config.load();
 const container = new Container();
 
 let store: PersistentStorage<number|string>;
+let DBStore: any;
+
+switch(config.dbMode) {
+    case ConfigManager.PG:
+        DBStore = PostgresStore;
+        break;
+    case ConfigManager.MONGO:
+        DBStore = MongodbStore;
+        break;
+    default:
+        throw new Error('DB_MODE is not support yet');
+}
 
 switch (config.mode) {
     case ConfigManager.DMHY:
-        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(PostgresStore).inSingletonScope();
+        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(DBStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(DmhyScraper).inSingletonScope();
         store = container.get<PersistentStorage<number>>(TYPES.PersistentStorage);
         break;
     case ConfigManager.BANGUMI_MOE:
-        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(PostgresStore).inSingletonScope();
+        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(DBStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(BangumiMoe).inSingletonScope();
         store = container.get<PersistentStorage<string>>(TYPES.PersistentStorage);
         break;
