@@ -5,12 +5,12 @@ import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
 import { PostgresStore } from './storage/pg-store';
-import { PersistentStorage, Scraper, TYPES } from './types';
-
-const config = ConfigManager.getInstance();
-config.load();
+import { ConfigLoader, PersistentStorage, Scraper, TYPES } from './types';
 
 const container = new Container();
+container.bind<ConfigLoader>(TYPES.ConfigLoader).to(ConfigManager).inSingletonScope();
+const config = container.get<ConfigLoader>(TYPES.ConfigLoader);
+config.load();
 
 let store: PersistentStorage<number|string>;
 

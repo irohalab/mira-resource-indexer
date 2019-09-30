@@ -1,17 +1,20 @@
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import { Pool, PoolClient, QueryArrayConfig, QueryConfig } from 'pg';
 import { ConfigManager } from '../config';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
-import { PersistentStorage } from '../types';
+import { ConfigLoader, PersistentStorage, TYPES } from '../types';
 import { CREATE_TABLE_WITH_NUM_ID, CREATE_TABLE_WITH_STRING_ID } from './database-constant';
 
 @injectable()
 export class PostgresStore<T> implements PersistentStorage<T> {
     private _pool: Pool;
     private _tableNames = ['item', 'item_type', 'team', 'publisher', 'media_file'];
+
+    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+    }
 
     public deleteItem(id: T): Promise<boolean> {
         return undefined;
@@ -111,13 +114,12 @@ export class PostgresStore<T> implements PersistentStorage<T> {
     }
 
     public async onStart(): Promise<void> {
-        const config = ConfigManager.getInstance();
         this._pool = new Pool({
-            database: config.dbName,
-            host: config.dbHost,
-            password: config.dbPass,
-            port: config.dbPort,
-            user: config.dbUser
+            database: this._config.dbName,
+            host: this._config.dbHost,
+            password: this._config.dbPass,
+            port: this._config.dbPort,
+            user: this._config.dbUser
         });
         // this._pool.on('error', (err) => {
         //     console.error('Unexpected error on idle client', err);
@@ -127,7 +129,7 @@ export class PostgresStore<T> implements PersistentStorage<T> {
         if (allExists) {
             return Promise.resolve();
         }
-        await this._createTables(config);
+        await this._createTables(this._config);
         return Promise.resolve();
     }
 
@@ -155,7 +157,7 @@ export class PostgresStore<T> implements PersistentStorage<T> {
      * @returns {Promise<any>}
      * @private
      */
-    private async _createTables(config: ConfigManager): Promise<any> {
+    private async _createTables(config: ConfigLoader): Promise<any> {
         const client = await this._pool.connect();
         let statement;
         if (config.mode === 'dmhy') {

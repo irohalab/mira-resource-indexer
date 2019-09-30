@@ -1,16 +1,11 @@
-export class ConfigManager {
+import { injectable } from 'inversify';
+import { ConfigLoader } from './types';
+
+@injectable()
+export class ConfigManager implements ConfigLoader {
 
     public static DMHY = 'dmhy';
     public static BANGUMI_MOE = 'bangumi_moe';
-
-    public static instance: ConfigManager;
-
-    public static getInstance() {
-        if (!ConfigManager.instance) {
-            ConfigManager.instance = new ConfigManager();
-        }
-        return ConfigManager.instance;
-    }
     
     private  _mode: string;
     private _dbHost: string;
@@ -43,7 +38,7 @@ export class ConfigManager {
         return this._dbPass;
     }
 
-    public load() {
+    public load(): void {
         this._mode = process.env.INDEXER_MODE;
         if (!this._mode) {
             throw new Error('No mode specified!');

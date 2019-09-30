@@ -1,18 +1,16 @@
-import { Expect, Test, TestFixture } from 'alsatian';
+import { Expect, Test, TestCase, TestFixture } from 'alsatian';
 import { toUTCDate, trimDomain } from './normalize';
 
 @TestFixture('Normalize utility methods specs')
 export class NormalizeSpec {
 
     @Test('trimDomain should drop domain part from url')
-    public trimDomainTest(): void {
-        const domainList = [{
-            input: 'https://share.dmhy.org/topics/view/525154_Skytree_ONE_PIECE_903_X264_720P_GB_JP_MP4_CRRIP.html',
-            output: '/topics/view/525154_Skytree_ONE_PIECE_903_X264_720P_GB_JP_MP4_CRRIP.html'
-        }];
-        for (let domain of domainList) {
-            Expect(trimDomain(domain.input)).toBe(domain.output);
-        }
+    @TestCase(
+        'https://share.dmhy.org/topics/view/525154_Skytree_ONE_PIECE_903_X264_720P_GB_JP_MP4_CRRIP.html',
+        '/topics/view/525154_Skytree_ONE_PIECE_903_X264_720P_GB_JP_MP4_CRRIP.html'
+    )
+    public trimDomainTest(input: string, output: string): void {
+        Expect(trimDomain(input)).toBe(output);
     }
 
     @Test('toUTCDate should convert date string to UTC Date with a timezone')
