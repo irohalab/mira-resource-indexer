@@ -4,6 +4,7 @@ import { Publisher } from './publisher';
 import { Team } from './Team';
 
 export class Item<T> {
+    [key: string]: any;
     public id: T; // this id is unique identifier for all types of entries. And for database primary key too.
     public title: string;
     public files: MediaFile[]; // file contains in the torrent

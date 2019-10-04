@@ -1,6 +1,7 @@
 import { Item } from './entity/Item';
 
 export const TYPES = {
+    ConfigLoader: Symbol.for('ConfigLoader'),
     PersistentStorage: Symbol.for('PersistentStorage'),
     Scraper: Symbol.for('Scraper')
 };
@@ -18,4 +19,14 @@ export interface PersistentStorage<T> {
 export interface Scraper {
     start(): Promise<any>;
     end(): Promise<any>;
+}
+
+export interface ConfigLoader {
+    mode: string;
+    dbHost: string;
+    dbPort: number;
+    dbUser: string;
+    dbName: string;
+    dbPass: string;
+    load(): void;
 }
