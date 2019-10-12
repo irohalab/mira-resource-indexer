@@ -9,8 +9,8 @@ Database can be configured two modes: postgres, mongo
 
 - INDEXER_MODE what mode this indexer will work at. set `dmhy` or `bangumi_moe`
 - DB_MODE for databse instance, default is `mongo`, you can select `postgres`
-- DB_HOST host for database instance, default is `localhost`
-- DB_PORT port for database, default is 5432
+- DB_HOST host for database instance, default is `mongo`
+- DB_PORT port for database, default is `27017`
 - DB_USER user for database access, default is `admin`
 - DB_NAME database name, default is `dmhy_indexer`
 - DB_PASS password for postgres access, default is 123456
