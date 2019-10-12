@@ -5,23 +5,32 @@ services:
     ports:
       - "${DB_EXPORT_PORT-54320}:5432"
     environment:
-      POSTGRES_USER: "${DB_USER-postgres}"
+      POSTGRES_USER: "${DB_USER-admin}"
       POSTGRES_PASSWORD: "${DB_PASS-123456}"
       POSTGRES_DB: "${DB_NAME-dmhy_indexer}"
 
+  mongo:
+    image: mongo:3.4-xenial
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${DB_USER-admin}"
+      MONGO_INITDB_ROOT_PASSWORD: "${DB_PASS-123456}"
+      MONGO_INITDB_DATABASE: "${DB_NAME-dmhy_indexer}"
   main:
     build: .
     cap_add:
       - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker 
     image: "indexer"
-    command: yarn start
+    command: npm run start
     ports:
       - "9229:9229"
     environment:
       INDEXER_MODE: "${INDEXER_MODE-dmhy}"
-      DB_HOST: "${DB_HOST-pg}"
-      DB_PORT: "${DB_PORT-5432}"
-      DB_USER: "${DB_USER-postgres}"
+      DB_MODE: "${DB_MODE-mongo}"
+      DB_HOST: "${DB_HOST-mongo}"
+      DB_PORT: "${DB_PORT-27017}"
+      DB_USER: "${DB_USER-admin}"
       DB_NAME: "${DB_NAME-dmhy_indexer}"
       DB_PASS: "${DB_PASS-123456}"
     volumes:
