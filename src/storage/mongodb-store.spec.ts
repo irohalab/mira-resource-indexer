@@ -8,8 +8,8 @@ import { items } from '../utils/test-samples';
 import { MongoClient, Db } from 'mongodb';
 import { MongodbStore } from './mongodb-store';
 
-@TestFixture('PgStore test spec')
-export class PgStoreSpec {
+@TestFixture('MongodbStore test spec')
+export class MongodbStoreSpec {
     private _store: MongodbStore<number>;
     private _config: ConfigLoader;
     private _container: Container;
