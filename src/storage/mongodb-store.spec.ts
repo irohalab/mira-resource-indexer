@@ -1,11 +1,11 @@
 import { Expect, Ignore, Setup, SetupFixture, Teardown, TeardownFixture, Test, TestCase, TestFixture } from 'alsatian';
 import { fail } from 'assert';
 import { Container } from 'inversify';
-import { ConfigManager } from '../config';
+import { FakeMongoDBConfigManager } from '../test/fake-mongodb';
 import { Item } from '../entity/Item';
 import { ConfigLoader, PersistentStorage, TYPES } from '../types';
 import { items } from '../utils/test-samples';
-import { MongoClient, Db } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { MongodbStore } from './mongodb-store';
 
 @TestFixture('MongodbStore test spec')
@@ -18,11 +18,8 @@ export class MongodbStoreSpec {
 
     @SetupFixture
     public setupFixture() {
-        if (!process.env.DB_NAME) {
-            fail('You must set the Environment Variable DB_NAME to avoid potential damage to default database');
-        }
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(ConfigManager).inSingletonScope();
+        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeMongoDBConfigManager).inSingletonScope();
         this._container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(MongodbStore).inTransientScope();
         this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
         this._config.load();

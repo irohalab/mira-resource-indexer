@@ -5,7 +5,8 @@
     "clean:dist": "rimraf dist/*",
     "build:dev": "npm run clean:dist && tsc",
     "start": "npm run build:dev && concurrently \"tsc -w\" \"npm run watch\"",
-    "watch": "sleep 3 && nodemon --watch dist dist/main.js"
+    "watch": "sleep 3 && nodemon --watch dist dist/main.js",
+    "test": "alsatian src/**/*.spec.ts"
   },
   "dependencies": {
     "axios": "^0.18.1",
