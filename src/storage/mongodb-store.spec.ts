@@ -1,7 +1,6 @@
 import { Expect, Ignore, Setup, SetupFixture, Teardown, TeardownFixture, Test, TestCase, TestFixture } from 'alsatian';
-import { fail } from 'assert';
 import { Container } from 'inversify';
-import { FakeMongoDBConfigManager } from '../test/fake-mongodb';
+import { FakeConfigManager } from '../test/fake-config';
 import { Item } from '../entity/Item';
 import { ConfigLoader, PersistentStorage, TYPES } from '../types';
 import { items } from '../utils/test-samples';
@@ -19,10 +18,12 @@ export class MongodbStoreSpec {
     @SetupFixture
     public setupFixture() {
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeMongoDBConfigManager).inSingletonScope();
+        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
         this._container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(MongodbStore).inTransientScope();
         this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
         this._config.load();
+        this._config.dbHost = 'mongo';
+        this._config.dbPort = 27017;
     }
 
     @Setup

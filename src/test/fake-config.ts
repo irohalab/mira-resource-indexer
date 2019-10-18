@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 import { ConfigLoader } from '../types';
 
 @injectable()
-export class FakePostgresConfigManager implements ConfigLoader {
+export class FakeConfigManager implements ConfigLoader {
 
     private _mode: string;
     private _dbMode: string
@@ -24,8 +24,16 @@ export class FakePostgresConfigManager implements ConfigLoader {
         return this._dbHost;
     }
 
+    public set dbHost(newHost: string) {
+        this._dbHost = newHost;
+    }
+
     public get dbPort(): number {
         return this._dbPort;
+    }
+
+    public set dbPort(newPort: number) {
+        this._dbPort = newPort;
     }
 
     public get dbUser(): string {
@@ -40,13 +48,21 @@ export class FakePostgresConfigManager implements ConfigLoader {
         return this._dbPass;
     }
 
+
     public load(): void {
-        this._mode = 'dmhy';
-        this._dbMode = 'postgres';
-        this._dbHost = 'pg';
-        this._dbPort = 5432;
-        this._dbUser = 'admin';
-        this._dbName = 'dmhy_indexer';
-        this._dbPass = '123456';
+        this._mode = process.env.INDEXER_MODE;
+        if (!this._mode) {
+            throw new Error('No mode specified!');
+        }
+        this._dbMode = process.env.DB_MODE || 'mongo';
+        this._dbHost = process.env.DB_HOST || 'localhost';
+        this._dbPort = parseInt(process.env.DB_PORT, 10) || 5432;
+        this._dbUser = process.env.DB_USER || process.env.USER;
+        if (process.env.DB_NAME) {
+            this._dbName = process.env.DB_NAME;
+        } else {
+            this._dbName = this._mode + '_indexer';
+        }
+        this._dbPass = process.env.DB_PASS || '123456';
     }
 }
