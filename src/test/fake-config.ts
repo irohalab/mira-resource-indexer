@@ -4,10 +4,10 @@ import { ConfigLoader } from '../types';
 @injectable()
 export class FakeConfigManager implements ConfigLoader {
 
+    public dbHost: string;
+    public dbPort: number;
     private _mode: string;
-    private _dbMode: string
-    private _dbHost: string;
-    private _dbPort: number;
+    private _dbMode: string;
     private _dbUser: string;
     private _dbName: string;
     private _dbPass: string;
@@ -18,22 +18,6 @@ export class FakeConfigManager implements ConfigLoader {
 
     public get dbMode(): string {
         return this._dbMode;
-    }
-
-    public get dbHost(): string {
-        return this._dbHost;
-    }
-
-    public set dbHost(newHost: string) {
-        this._dbHost = newHost;
-    }
-
-    public get dbPort(): number {
-        return this._dbPort;
-    }
-
-    public set dbPort(newPort: number) {
-        this._dbPort = newPort;
     }
 
     public get dbUser(): string {
@@ -48,15 +32,14 @@ export class FakeConfigManager implements ConfigLoader {
         return this._dbPass;
     }
 
-
     public load(): void {
         this._mode = process.env.INDEXER_MODE;
         if (!this._mode) {
             throw new Error('No mode specified!');
         }
         this._dbMode = process.env.DB_MODE || 'mongo';
-        this._dbHost = process.env.DB_HOST || 'localhost';
-        this._dbPort = parseInt(process.env.DB_PORT, 10) || 5432;
+        this.dbHost = process.env.DB_HOST || 'localhost';
+        this.dbPort = parseInt(process.env.DB_PORT, 10) || 5432;
         this._dbUser = process.env.DB_USER || process.env.USER;
         if (process.env.DB_NAME) {
             this._dbName = process.env.DB_NAME;

@@ -38,7 +38,7 @@ export class MongodbStore<T> implements PersistentStorage<T> {
     }
 
     public async putItem(item: Item<T>): Promise<boolean> {
-        await this._db.collection(this._collectionName).insertOne(item)
+        await this._db.collection(this._collectionName).insertOne(item);
         return Promise.resolve(true);
     }
 
@@ -47,7 +47,9 @@ export class MongodbStore<T> implements PersistentStorage<T> {
     }
 
     public async onStart(): Promise<void> {
-        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${this._config.dbHost}:${this._config.dbPort}?authSource=admin`;
+        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
+            this._config.dbHost
+          }:${this._config.dbPort}?authSource=admin`;
         this._client = await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
         this._db = this._client.db(this._config.dbName);
         return Promise.resolve();
