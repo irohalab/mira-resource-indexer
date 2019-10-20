@@ -6,46 +6,26 @@ export class FakeConfigManager implements ConfigLoader {
 
     public dbHost: string;
     public dbPort: number;
-    private _mode: string;
-    private _dbMode: string;
-    private _dbUser: string;
-    private _dbName: string;
-    private _dbPass: string;
-
-    public get mode(): string {
-        return this._mode;
-    }
-
-    public get dbMode(): string {
-        return this._dbMode;
-    }
-
-    public get dbUser(): string {
-        return this._dbUser;
-    }
-
-    public get dbName(): string {
-        return this._dbName;
-    }
-
-    public get dbPass(): string {
-        return this._dbPass;
-    }
+    public mode: string;
+    public dbMode: string;
+    public dbUser: string;
+    public dbName: string;
+    public dbPass: string;
 
     public load(): void {
-        this._mode = process.env.INDEXER_MODE;
-        if (!this._mode) {
+        this.mode = process.env.INDEXER_MODE;
+        if (!this.mode) {
             throw new Error('No mode specified!');
         }
-        this._dbMode = process.env.DB_MODE || 'mongo';
+        this.dbMode = process.env.DB_MODE || 'mongo';
         this.dbHost = process.env.DB_HOST || 'localhost';
         this.dbPort = parseInt(process.env.DB_PORT, 10) || 5432;
-        this._dbUser = process.env.DB_USER || process.env.USER;
+        this.dbUser = process.env.DB_USER || process.env.USER;
         if (process.env.DB_NAME) {
-            this._dbName = process.env.DB_NAME;
+            this.dbName = process.env.DB_NAME;
         } else {
-            this._dbName = this._mode + '_indexer';
+            this.dbName = this.mode + '_indexer';
         }
-        this._dbPass = process.env.DB_PASS || '123456';
+        this.dbPass = process.env.DB_PASS || '123456';
     }
 }
