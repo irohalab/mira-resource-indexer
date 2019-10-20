@@ -24,6 +24,7 @@ export interface Scraper {
 
 export interface ConfigLoader {
     mode: string;
+    dbMode: string;
     dbHost: string;
     dbPort: number;
     dbUser: string;

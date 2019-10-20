@@ -12,12 +12,14 @@
     "axios": "^0.18.1",
     "grpc": "^1.24.0",
     "inversify": "^5.0.1",
+    "mongodb": "^3.3.2",
     "pg": "^7.7.1",
     "puppeteer": "^1.11.0",
     "reflect-metadata": "^0.1.12",
     "typescript": "^3.2.1"
   },
   "devDependencies": {
+    "@types/mongodb": "^3.3.6",
     "@types/node": "^10.12.12",
     "@types/pg": "^7.4.11",
     "@types/puppeteer": "^1.11.0",
