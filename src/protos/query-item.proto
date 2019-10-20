@@ -1,0 +1,11 @@
+syntax="proto3";
+
+package Indexer;
+
+import "protos/request-params.proto";
+import "protos/response.proto";
+
+service QueryItem {
+    rpc bangumiMoe(RequestParams) returns (BangumiMoeResponse) {};
+    rpc dmhy(RequestParams) returns (DmhyResponse) {};
+}

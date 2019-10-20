@@ -1,0 +1,8 @@
+syntax="proto3";
+
+package Indexer;
+
+message RequestParams {
+    string keyword = 1;
+    string mode = 2; // can be bangumi.moe or dmhy
+}

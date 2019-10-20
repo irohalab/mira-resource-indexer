@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package Indexer;
+
+message BangumiMoeItem {
+    message MediaFile {
+        string id = 1;
+        string item_id = 2;
+        string path = 3;
+        string name = 4;
+        string ext = 5;
+        string size = 6;
+    }
+    message ItemType {
+        string id = 1;
+        string name = 2;
+    }
+    message Team {
+        string id = 1;
+        string name = 2;
+    }
+    message Publisher {
+        string id = 1;
+        string name = 2;
+    }
+    string id = 1;
+    string title = 2;
+    string timestamp = 3;
+    string uri = 4;
+    string torrent_url = 5;
+    string magnet_uri = 6;
+    repeated MediaFile files = 7;
+    Publisher publisher = 8;
+    ItemType team = 9;
+}

@@ -8,7 +8,9 @@
     "watch": "sleep 3 && nodemon --watch dist dist/main.js"
   },
   "dependencies": {
+    "@grpc/proto-loader": "^0.5.2",
     "axios": "^0.18.1",
+    "grpc": "^1.24.0",
     "inversify": "^5.0.1",
     "pg": "^7.7.1",
     "puppeteer": "^1.11.0",

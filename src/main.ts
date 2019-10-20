@@ -2,6 +2,7 @@ import { Container } from 'inversify';
 import 'reflect-metadata';
 import { Error } from 'tslint/lib/error';
 import { ConfigManager } from './config';
+import { RpcServer } from './rpc-server';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
 import { PostgresStore } from './storage/pg-store';
@@ -29,6 +30,8 @@ switch (config.mode) {
         throw new Error('Mode is not supported yet');
 }
 
+container.bind<RpcServer>(RpcServer).toSelf();
+const rpcServer = container.get<RpcServer>(RpcServer);
 const scraper = container.get<Scraper>(TYPES.Scraper);
 
 // clean up
@@ -39,6 +42,7 @@ process.on('exit', async () => {
 // catches Ctrl+C event
 process.on('SIGINT', async () => {
     await scraper.end();
+    await rpcServer.stop();
     process.exit();
 });
 
@@ -49,3 +53,5 @@ process.on('SIGINT', async () => {
 })().catch((e) => {
     console.error(e ? e.stack : 'unknown error');
 });
+
+rpcServer.start(config.rpcHost, config.rpcPort);

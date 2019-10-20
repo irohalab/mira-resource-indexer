@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package Indexer;
+
+message DmhyItem {
+    message MediaFile {
+        int32 id = 1;
+        string item_id = 2;
+        string path = 3;
+        string name = 4;
+        string ext = 5;
+        string size = 6;
+    }
+    message ItemType {
+        int32 id = 1;
+        string name = 2;
+    }
+    message Team {
+        int32 id = 1;
+        string name = 2;
+    }
+    message Publisher {
+        int32 id = 1;
+        string name = 2;
+    }
+    int32 id = 1;
+    string title = 2;
+    string timestamp = 3;
+    string uri = 4;
+    string torrent_url = 5;
+    string magnet_uri = 6;
+    repeated MediaFile files = 7;
+    Publisher publisher = 8;
+    ItemType team = 9;
+}

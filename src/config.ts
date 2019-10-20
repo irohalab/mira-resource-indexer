@@ -13,6 +13,8 @@ export class ConfigManager implements ConfigLoader {
     private _dbUser: string;
     private _dbName: string;
     private _dbPass: string;
+    private _rpcHost: string;
+    private _rpcPort: number;
 
     public get mode(): string {
         return this._mode;
@@ -38,6 +40,14 @@ export class ConfigManager implements ConfigLoader {
         return this._dbPass;
     }
 
+    public get rpcHost(): string {
+        return this._rpcHost;
+    }
+
+    public get rpcPort(): number {
+        return this._rpcPort;
+    }
+
     public load(): void {
         this._mode = process.env.INDEXER_MODE;
         if (!this._mode) {
@@ -52,5 +62,7 @@ export class ConfigManager implements ConfigLoader {
             this._dbName = this._mode + '_indexer';
         }
         this._dbPass = process.env.DB_PASS || '123456';
+        this._rpcHost = process.env.RPC_HOST || '0.0.0.0';
+        this._rpcPort = parseInt(process.env.RPC_PORT, 10) || 50051;
     }
 }

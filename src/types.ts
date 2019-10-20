@@ -14,6 +14,7 @@ export interface PersistentStorage<T> {
     hasItem(id: T): Promise<boolean>;
     filterItemNotStored(ids: T[]): Promise<T[]>;
     putItem(item: Item<T>): Promise<boolean>;
+    getItemsByKeyword(keyword: string): Promise<T[]>; // only top 100 should be returned
 }
 
 export interface Scraper {
@@ -28,5 +29,7 @@ export interface ConfigLoader {
     dbUser: string;
     dbName: string;
     dbPass: string;
+    rpcHost: string;
+    rpcPort: number;
     load(): void;
 }

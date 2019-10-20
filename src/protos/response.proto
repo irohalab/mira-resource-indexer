@@ -1,0 +1,16 @@
+syntax="proto3";
+
+package Indexer;
+
+import "protos/item-bangumi-moe.proto";
+import "protos/item-dmhy.proto";
+
+message BangumiMoeResponse {
+    repeated BangumiMoeItem items = 1;
+    int32 count = 2;
+}
+
+message DmhyResponse {
+    repeated DmhyItem items = 1;
+    int32 count = 2;
+}
