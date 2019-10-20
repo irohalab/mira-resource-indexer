@@ -2,7 +2,7 @@ import { Expect, Ignore, Setup, SetupFixture, Teardown, TeardownFixture, Test, T
 import { fail } from 'assert';
 import { Container } from 'inversify';
 import { Client } from 'pg';
-import { ConfigManager } from '../config';
+import { FakeConfigManager } from '../test/fake-config';
 import { Item } from '../entity/Item';
 import { ConfigLoader, PersistentStorage, TYPES } from '../types';
 import { items } from '../utils/test-samples';
@@ -22,10 +22,12 @@ export class PgStoreSpec {
             fail('You must set the Environment Variable DB_NAME to avoid potential damage to default database');
         }
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(ConfigManager).inSingletonScope();
+        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
         this._container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(PostgresStore).inTransientScope();
         this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
         this._config.load();
+        this._config.dbHost = 'pg';
+        this._config.dbPort = 5432;
     }
 
     @Setup

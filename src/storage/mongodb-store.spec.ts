@@ -1,11 +1,11 @@
 import { Expect, Ignore, Setup, SetupFixture, Teardown, TeardownFixture, Test, TestCase, TestFixture } from 'alsatian';
 import { fail } from 'assert';
 import { Container } from 'inversify';
-import { ConfigManager } from '../config';
+import { FakeConfigManager } from '../test/fake-config';
 import { Item } from '../entity/Item';
 import { ConfigLoader, PersistentStorage, TYPES } from '../types';
 import { items } from '../utils/test-samples';
-import { MongoClient, Db } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { MongodbStore } from './mongodb-store';
 
 @TestFixture('MongodbStore test spec')
@@ -22,10 +22,12 @@ export class MongodbStoreSpec {
             fail('You must set the Environment Variable DB_NAME to avoid potential damage to default database');
         }
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(ConfigManager).inSingletonScope();
+        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
         this._container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(MongodbStore).inTransientScope();
         this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
         this._config.load();
+        this._config.dbHost = 'mongo';
+        this._config.dbPort = 27017;
     }
 
     @Setup
@@ -49,7 +51,12 @@ export class MongodbStoreSpec {
         const isSuccess = await this._store.putItem(Object.assign({}, item));
         Expect(isSuccess).toBeTruthy();
         const client = await this._createClient();
-        const result = await client.db(this._config.dbName).collection(this._collectionName).find({}).project({ _id: 0 }).toArray();
+        const result = await client
+        .db(this._config.dbName)
+        .collection(this._collectionName)
+        .find({})
+        .project({ _id: 0 })
+        .toArray();
         Expect(result.length).toBe(1);
         Object.keys(item).forEach((k: string) => {
             Expect(item[k]).toEqual(result[0][k]);
@@ -57,7 +64,9 @@ export class MongodbStoreSpec {
     }
 
     private async _createClient(): Promise<MongoClient> {
-        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${this._config.dbHost}:${this._config.dbPort}?authSource=admin`;
+        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
+            this._config.dbHost
+          }:${this._config.dbPort}?authSource=admin`;
         return await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
     }
 }

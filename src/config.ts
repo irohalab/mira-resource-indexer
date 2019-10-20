@@ -11,7 +11,7 @@ export class ConfigManager implements ConfigLoader {
     public static MONGO = 'mongo';
 
     private  _mode: string;
-    private _dbMode: string
+    private _dbMode: string;
     private _dbHost: string;
     private _dbPort: number;
     private _dbUser: string;

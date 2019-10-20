@@ -28,7 +28,8 @@
       }
     ],
     "no-trailing-whitespace": [true, "ignore-blank-lines"],
-    "interface-name": [true, "never-prefix"]
+    "interface-name": [true, "never-prefix"],
+    "ordered-imports": false
   },
   "rulesDirectory": []
 }

@@ -14,14 +14,14 @@ const config = container.get<ConfigLoader>(TYPES.ConfigLoader);
 config.load();
 
 let store: PersistentStorage<number|string>;
-let DBStore: any;
+let dBStore: any;
 
-switch(config.dbMode) {
+switch (config.dbMode) {
     case ConfigManager.PG:
-        DBStore = PostgresStore;
+        dBStore = PostgresStore;
         break;
     case ConfigManager.MONGO:
-        DBStore = MongodbStore;
+        dBStore = MongodbStore;
         break;
     default:
         throw new Error('DB_MODE is not support yet');
@@ -29,12 +29,12 @@ switch(config.dbMode) {
 
 switch (config.mode) {
     case ConfigManager.DMHY:
-        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(DBStore).inSingletonScope();
+        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(dBStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(DmhyScraper).inSingletonScope();
         store = container.get<PersistentStorage<number>>(TYPES.PersistentStorage);
         break;
     case ConfigManager.BANGUMI_MOE:
-        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(DBStore).inSingletonScope();
+        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(dBStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(BangumiMoe).inSingletonScope();
         store = container.get<PersistentStorage<string>>(TYPES.PersistentStorage);
         break;
