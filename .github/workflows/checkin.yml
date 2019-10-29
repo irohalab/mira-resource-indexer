@@ -1,0 +1,21 @@
+name: Check pull request
+
+on: [pull_request, push]
+jobs:
+
+  check_pr:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: "Use Node.js 10.x"
+      uses: actions/setup-node@v1
+      with:
+        version: 10.x
+
+    - name: "yarn install"
+      run: yarn install
+
+
+    - name: "lint pull request code"
+      run: |
+        yarn lint
