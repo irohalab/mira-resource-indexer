@@ -46,7 +46,7 @@ const scraper = container.get<Scraper>(TYPES.Scraper);
 
 // clean up
 process.on('exit', async () => {
-    await store.onEnd();
+    await store.onEnd()
 });
 
 // catches Ctrl+C event
