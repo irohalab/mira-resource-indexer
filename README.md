@@ -1,4 +1,4 @@
-# Indexer for Albireo
+# Indexer for Albireo [![GitHub Actions status](https://github.com/irohalab/indexer/workflows/checkin/badge.svg)](https://github.com/irohalab/indexer)
 
 requirements: Postgres >= 9.5
 
