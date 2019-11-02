@@ -1,0 +1,23 @@
+name: lint-and-unit-test
+
+on: [pull_request, push]
+jobs:
+
+  check_pr:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: "Use Node.js 10.x"
+      uses: actions/setup-node@v1
+      with:
+        node-version: 10.x
+
+    - name: "yarn install"
+      run: yarn install
+
+    - name: "lint pull request code"
+      run: yarn lint
+    - name: "unit test"
+      run: |
+        docker-compose up --force-recreate --build -d
+        docker-compose exec -T main npm run test
