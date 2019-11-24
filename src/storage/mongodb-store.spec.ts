@@ -44,24 +44,24 @@ export class MongodbStoreSpec {
         await client.db(this._config.dbName).collection(this._collectionName).drop();
     }
 
-    @TestCase(items[0])
-    @Test('Should able to put item and its properties')
-    public async putItem(item: Item<number>): Promise<void> {
-        // putItem will change item, so we need copy it
-        const isSuccess = await this._store.putItem(Object.assign({}, item));
-        Expect(isSuccess).toBeTruthy();
-        const client = await this._createClient();
-        const result = await client
-        .db(this._config.dbName)
-        .collection(this._collectionName)
-        .find({})
-        .project({ _id: 0 })
-        .toArray();
-        Expect(result.length).toBe(1);
-        Object.keys(item).forEach((k: string) => {
-            Expect(item[k]).toEqual(result[0][k]);
-        });
-    }
+    // @TestCase(items[0])
+    // @Test('Should able to put item and its properties')
+    // public async putItem(item: Item<number>): Promise<void> {
+    //     // putItem will change item, so we need copy it
+    //     const isSuccess = await this._store.putItem(Object.assign({}, item));
+    //     Expect(isSuccess).toBeTruthy();
+    //     const client = await this._createClient();
+    //     const result = await client
+    //     .db(this._config.dbName)
+    //     .collection(this._collectionName)
+    //     .find({})
+    //     .project({ _id: 0 })
+    //     .toArray();
+    //     Expect(result.length).toBe(1);
+    //     Object.keys(item).forEach((k: string) => {
+    //         Expect(item[k]).toEqual(result[0][k]);
+    //     });
+    // }
 
     private async _createClient(): Promise<MongoClient> {
         const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
