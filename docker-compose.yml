@@ -37,6 +37,6 @@ services:
       - ".:/irohalab/indexer"
       - "/irohalab/indexer/node_modules"
       - "/irohalab/indexer/dist"
-      - "/irohalab/indexer/coverage"
+      - "./covergae:/irohalab/indexer/covergae"
     depends_on:
       - pg
