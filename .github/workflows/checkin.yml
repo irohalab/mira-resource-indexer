@@ -24,9 +24,6 @@ jobs:
     - name: Test code format
       run: yarn lint
 
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v1
-
     - name: Unit test and code covergae
       run: |
         docker-compose up --force-recreate --build -d
