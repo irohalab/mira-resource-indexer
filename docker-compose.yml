@@ -34,8 +34,8 @@ services:
       DB_NAME: "${DB_NAME-dmhy_indexer}"
       DB_PASS: "${DB_PASS-123456}"
     volumes:
-      - ".:/home/node"
-      - "/home/node/node_modules"
-      - "/home/node/dist"
+      - ".:/irohalab/indexer"
+      - "/irohalab/indexer/node_modules"
+      - "/irohalab/indexer/dist"
     depends_on:
       - pg
