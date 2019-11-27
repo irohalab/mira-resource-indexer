@@ -25,12 +25,12 @@ jobs:
       run: yarn lint
 
     - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v
+      uses: mxschmitt/action-tmate@v1
 
     - name: Unit test and code covergae
       run: |
         docker-compose up --force-recreate --build -d
-        docker-compose exec -T main npm run check-coverage1
+        docker-compose exec -T main npm run check-coverage
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1.0.3
