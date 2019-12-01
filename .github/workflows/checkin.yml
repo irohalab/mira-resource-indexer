@@ -26,8 +26,7 @@ jobs:
 
     - name: Unit test and code covergae
       run: |
-        docker-compose up --force-recreate --build -d
-        docker-compose exec -T main npm run check-coverage
+        docker-compose run main npm run check-coverage
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1.0.3
