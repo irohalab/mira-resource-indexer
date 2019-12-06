@@ -5,7 +5,7 @@ import { Client } from 'pg';
 import { FakeConfigManager } from '../test/fake-config';
 import { Item } from '../entity/Item';
 import { ConfigLoader, PersistentStorage, TYPES } from '../types';
-import { items } from '../utils/test-samples';
+import { items } from '../test/test-samples';
 import { PostgresStore } from './pg-store';
 
 const tableNames = ['item', 'item_type', 'team', 'publisher', 'media_file'];

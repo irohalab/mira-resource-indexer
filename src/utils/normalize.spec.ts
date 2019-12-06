@@ -1,5 +1,5 @@
 import { Expect, Test, TestCase, TestFixture } from 'alsatian';
-import { toUTCDate, trimDomain } from './normalize';
+import { escapeRegExp, toUTCDate, trimDomain } from './normalize';
 
 @TestFixture('Normalize utility methods specs')
 export class NormalizeSpec {
@@ -19,5 +19,11 @@ export class NormalizeSpec {
         const timezoneOffset = 8;
         const dateObj = Date.UTC(2019, 8, 22, 14 + timezoneOffset, 27, 0, 0);
         Expect(toUTCDate(dateStr, timezoneOffset).valueOf()).toEqual(dateObj.valueOf());
+    }
+
+    @Test('Should able to escape string')
+    @TestCase('Can Do.', 'Can Do\\.')
+    public escapeRegExpTest(testStr: string, desiredResult: string): void {
+        Expect(escapeRegExp(testStr)).toBe(desiredResult);
     }
 }

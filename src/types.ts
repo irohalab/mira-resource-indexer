@@ -1,4 +1,6 @@
 import { Item } from './entity/Item';
+import { TaskOrchestra } from './task/task-orchestra';
+import { Task } from './task/task-types';
 
 export const TYPES = {
     ConfigLoader: Symbol.for('ConfigLoader'),
@@ -14,11 +16,13 @@ export interface PersistentStorage<T> {
     hasItem(id: T): Promise<boolean>;
     filterItemNotStored(ids: T[]): Promise<T[]>;
     putItem(item: Item<T>): Promise<boolean>;
+    searchItem(keyword: string): Promise<Array<Item<T>>>;
 }
 
 export interface Scraper {
     start(): Promise<any>;
     end(): Promise<any>;
+    executeTask(task: Task, context: TaskOrchestra): Promise<any>;
 }
 
 export interface ConfigLoader {
@@ -29,5 +33,9 @@ export interface ConfigLoader {
     dbUser: string;
     dbName: string;
     dbPass: string;
+    authSource: string; // see: https://docs.mongodb.com/manual/core/security-users/#user-authentication-database
+    serverPort: number;
+    minInterval: number; // for task, unit is second
+    minCheckInterval: number; // for main task, unit is second
     load(): void;
 }

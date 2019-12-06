@@ -109,6 +109,10 @@ export class PostgresStore<T> implements PersistentStorage<T> {
         }
     }
 
+    public searchItem(keyword: string): Promise<Array<Item<T>>> {
+        return undefined;
+    }
+
     public async onEnd(): Promise<void> {
         await this._pool.end();
     }

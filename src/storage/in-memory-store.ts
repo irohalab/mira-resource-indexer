@@ -31,6 +31,10 @@ export class InMemoryStore<T> implements PersistentStorage<T> {
         return Promise.resolve(true);
     }
 
+    public searchItem(keyword: string): Promise<Array<Item<T>>> {
+        return undefined;
+    }
+
     public onEnd(): Promise<void> {
         console.log('instance end');
         return Promise.resolve();

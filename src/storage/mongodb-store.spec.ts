@@ -4,7 +4,7 @@ import { Container } from 'inversify';
 import { FakeConfigManager } from '../test/fake-config';
 import { Item } from '../entity/Item';
 import { ConfigLoader, PersistentStorage, TYPES } from '../types';
-import { items } from '../utils/test-samples';
+import { items } from '../test/test-samples';
 import { MongoClient } from 'mongodb';
 import { MongodbStore } from './mongodb-store';
 
@@ -26,7 +26,7 @@ export class MongodbStoreSpec {
         this._container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(MongodbStore).inTransientScope();
         this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
         this._config.load();
-        this._config.dbHost = 'mongo';
+        // this._config.dbHost = 'mongo';
         this._config.dbPort = 27017;
     }
 
@@ -44,11 +44,11 @@ export class MongodbStoreSpec {
         await client.db(this._config.dbName).collection(this._collectionName).drop();
     }
 
-    @TestCase(items[0])
+    @TestCase(0)
     @Test('Should able to put item and its properties')
-    public async putItem(item: Item<number>): Promise<void> {
+    public async putItem(index: number): Promise<void> {
         // putItem will change item, so we need copy it
-        const isSuccess = await this._store.putItem(Object.assign({}, item));
+        const isSuccess = await this._store.putItem(Object.assign({}, items[index]));
         Expect(isSuccess).toBeTruthy();
         const client = await this._createClient();
         const result = await client
@@ -58,15 +58,28 @@ export class MongodbStoreSpec {
         .project({ _id: 0 })
         .toArray();
         Expect(result.length).toBe(1);
-        Object.keys(item).forEach((k: string) => {
-            Expect(item[k]).toEqual(result[0][k]);
+        Object.keys(items[index]).forEach((k: string) => {
+            Expect(items[index][k]).toEqual(result[0][k]);
+        });
+    }
+
+    @TestCase('Dr. Stone', [0])
+    @Test('Should able to search item via keyword')
+    public async searchItem(keyword: string, resultIndexes: number[]): Promise<void> {
+        for (let item of items) {
+            await this._store.putItem(Object.assign({}, item));
+        }
+        const result = await this._store.searchItem(keyword);
+        Expect(result.length).toBe(resultIndexes.length);
+        result.forEach((row, i) => {
+            Expect(row.title).toBe(items[resultIndexes[i]].title);
         });
     }
 
     private async _createClient(): Promise<MongoClient> {
         const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
             this._config.dbHost
-          }:${this._config.dbPort}?authSource=admin`;
+          }:${this._config.dbPort}?authSource=${this._config.authSource}`;
         return await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
     }
 }
