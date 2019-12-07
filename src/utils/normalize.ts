@@ -30,7 +30,6 @@ export function toUTCDate(timestamp: string, timezone: number): Date {
     return new Date(Date.UTC(year, month, day, hour, minute) + timezone * 3600 * 1000);
 }
 
-
 /**
  * Replace all special characters of Regex to make sure it will work properly as a regex pattern
  * @param {string} str the string which need escape
