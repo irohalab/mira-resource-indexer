@@ -7,34 +7,70 @@ import { ItemType } from '../entity/item-type';
 import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
-import { PersistentStorage, Scraper, TYPES } from '../types';
+import { DmhyTask } from '../task/dmhy-task';
+import { TaskOrchestra } from '../task/task-orchestra';
+import { Task, TaskType } from '../task/task-types';
+import { ConfigLoader, PersistentStorage, Scraper, TYPES } from '../types';
 import { toUTCDate, trimDomain } from '../utils/normalize';
 
 @injectable()
 export class DmhyScraper implements Scraper {
     private static _host = 'https://share.dmhy.org';
     private _browser: Browser;
-    constructor(@inject(TYPES.PersistentStorage) private _store: PersistentStorage<number>) {
+    constructor(@inject(TYPES.PersistentStorage) private _store: PersistentStorage<number>,
+                @inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra,
+                @inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
 
     }
 
     public async start(): Promise<any> {
         this._browser = await launch();
-        const page = await this._browser.newPage();
-        const items = await this.scrapListPage(page);
-        console.log(items);
-        for (let item of items) {
-            await this.scrapDetailPage(this._browser, item);
-        }
+        this._taskOrchestra.queue(new DmhyTask(TaskType.MAIN));
+        this._taskOrchestra.start(this);
     }
 
     public async end(): Promise<any> {
+        this._taskOrchestra.stop();
         await this._browser.close();
         return undefined;
     }
 
-    public async scrapListPage(page: Page): Promise<Array<Item<number>>> {
-        await page.goto(DmhyScraper._host, {
+    public async executeTask(task: Task): Promise<any> {
+        const page = await this._browser.newPage();
+        page.setUserAgent('Mozilla/5.5 (X11; Linux x86_64) ' +
+            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36');
+        if (task.type === TaskType.MAIN) {
+            let result;
+            if (task instanceof DmhyTask) {
+                result = await this.scrapListPage(page, (task as DmhyTask).pageNo);
+            } else {
+                result = await this.scrapListPage(page);
+            }
+            for (let item of result.items) {
+                this._taskOrchestra.queue(new DmhyTask(TaskType.SUB, item));
+            }
+            if (result.hasNext && (task as DmhyTask).pageNo < this._config.maxPageNo) {
+                let newTask = new DmhyTask(TaskType.MAIN);
+                let previousPageNo = (task as DmhyTask).pageNo;
+                if (previousPageNo) {
+                    newTask.pageNo = previousPageNo + 1;
+                } else {
+                    newTask.pageNo = 2;
+                }
+                this._taskOrchestra.queue(newTask);
+            }
+        } else {
+            return this.scrapDetailPage(this._browser, (task as DmhyTask).item);
+        }
+    }
+
+    public async scrapListPage(page: Page, pageNo?: number): Promise<{items: Array<Item<number>>, hasNext: boolean}> {
+        let listPageUrl = DmhyScraper._host;
+        if (pageNo) {
+            listPageUrl += '/topics/list/page/' + pageNo;
+        }
+        console.log(`Scrapping ${listPageUrl}`);
+        await page.goto(listPageUrl, {
             waitUntil: 'domcontentloaded'
         });
         let tableElement = await page.$('#topic_list');
@@ -62,13 +98,15 @@ export class DmhyScraper implements Scraper {
                 el => el.querySelector('td:nth-child(2) > a font').textContent.trim(), tr);
         }
         let newIds = await this._store.filterItemNotStored(items.map(item => item.id));
-        return items.filter(item => {
+        let newItems = items.filter(item => {
             return newIds.includes(item.id);
         });
+        return {hasNext: newIds.length === items.length && newIds.length > 0, items: newItems};
     }
 
     public async scrapDetailPage(browser: Browser, item: Item<number>): Promise<void> {
         const page = await browser.newPage();
+        console.log(`Scrapping ${DmhyScraper._host + item.uri}`);
         await page.goto(DmhyScraper._host + item.uri, {
             waitUntil: 'domcontentloaded'
         });

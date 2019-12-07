@@ -18,9 +18,11 @@ export class ConfigManager implements ConfigLoader {
     private _dbName: string;
     private _dbPass: string;
     private _authSource: string;
+    private _serverHost: string;
     private _serverPort: number;
     private _minInterval: number;
     private _minCheckInterval: number;
+    private _maxPageNo: number;
 
     public get mode(): string {
         return this._mode;
@@ -54,6 +56,10 @@ export class ConfigManager implements ConfigLoader {
         return this._authSource;
     }
 
+    public get serverHost(): string {
+        return this._serverHost;
+    }
+
     public get serverPort(): number {
         return this._serverPort;
     }
@@ -64,6 +70,10 @@ export class ConfigManager implements ConfigLoader {
 
     public get minCheckInterval(): number {
         return this._minCheckInterval;
+    }
+
+    public get maxPageNo(): number {
+        return this._maxPageNo;
     }
 
     public load(): void {
@@ -81,8 +91,11 @@ export class ConfigManager implements ConfigLoader {
             this._dbName = this._mode + '_indexer';
         }
         this._dbPass = process.env.DB_PASS || '123456';
+        this._authSource = process.env.AUTH_SOURCE || 'admin';
+        this._serverHost = process.env.SERVER_HOST || '0.0.0.0';
         this._serverPort = parseInt(process.env.SERVER_PORT, 10) || 35120;
         this._minInterval = parseInt(process.env.MIN_INTERVAL, 10) || 10;
         this._minCheckInterval = parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60);
+        this._maxPageNo = parseInt(process.env.MAX_PAGE_NO, 10) || 5;
     }
 }

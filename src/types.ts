@@ -1,5 +1,4 @@
 import { Item } from './entity/Item';
-import { TaskOrchestra } from './task/task-orchestra';
 import { Task } from './task/task-types';
 
 export const TYPES = {
@@ -22,7 +21,7 @@ export interface PersistentStorage<T> {
 export interface Scraper {
     start(): Promise<any>;
     end(): Promise<any>;
-    executeTask(task: Task, context: TaskOrchestra): Promise<any>;
+    executeTask(task: Task): Promise<any>;
 }
 
 export interface ConfigLoader {
@@ -34,8 +33,10 @@ export interface ConfigLoader {
     dbName: string;
     dbPass: string;
     authSource: string; // see: https://docs.mongodb.com/manual/core/security-users/#user-authentication-database
+    serverHost: string;
     serverPort: number;
     minInterval: number; // for task, unit is second
     minCheckInterval: number; // for main task, unit is second
+    maxPageNo: number; // max page number for scrapping
     load(): void;
 }

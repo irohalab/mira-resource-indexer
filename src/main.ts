@@ -1,40 +1,32 @@
 import { Container } from 'inversify';
 import 'reflect-metadata';
-import { Error } from 'tslint/lib/error';
 import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
-import { PostgresStore } from './storage/pg-store';
+import { RESTServer } from './server';
 import { MongodbStore } from './storage/mongodb-store';
+import { TaskOrchestra } from './task/task-orchestra';
 import { ConfigLoader, PersistentStorage, Scraper, TYPES } from './types';
+import './service/items-query';
 
+/* Initialize container */
 const container = new Container();
 container.bind<ConfigLoader>(TYPES.ConfigLoader).to(ConfigManager).inSingletonScope();
 const config = container.get<ConfigLoader>(TYPES.ConfigLoader);
 config.load();
+/* bind TaskOrchestra */
+container.bind<TaskOrchestra>(TaskOrchestra).toSelf().inTransientScope();
 
 let store: PersistentStorage<number|string>;
-let dBStore: any;
-
-switch (config.dbMode) {
-    case ConfigManager.PG:
-        dBStore = PostgresStore;
-        break;
-    case ConfigManager.MONGO:
-        dBStore = MongodbStore;
-        break;
-    default:
-        throw new Error('DB_MODE is not support yet');
-}
 
 switch (config.mode) {
     case ConfigManager.DMHY:
-        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(dBStore).inSingletonScope();
+        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(MongodbStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(DmhyScraper).inSingletonScope();
         store = container.get<PersistentStorage<number>>(TYPES.PersistentStorage);
         break;
     case ConfigManager.BANGUMI_MOE:
-        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(dBStore).inSingletonScope();
+        container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(MongodbStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(BangumiMoe).inSingletonScope();
         store = container.get<PersistentStorage<string>>(TYPES.PersistentStorage);
         break;
@@ -44,21 +36,18 @@ switch (config.mode) {
 
 const scraper = container.get<Scraper>(TYPES.Scraper);
 
-// clean up
-process.on('exit', async () => {
-    await store.onEnd();
-});
-
 // catches Ctrl+C event
 process.on('SIGINT', async () => {
+    console.log('stopping scrapper and store...');
     await scraper.end();
+    await store.onEnd();
     process.exit();
 });
 
 (async () => {
     await store.onStart();
     await scraper.start();
-    await scraper.end();
-})().catch((e) => {
-    console.error(e ? e.stack : 'unknown error');
-});
+})();
+
+const server = new RESTServer(container, config);
+server.start();
