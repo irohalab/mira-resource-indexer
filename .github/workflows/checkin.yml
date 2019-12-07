@@ -1,9 +1,16 @@
 name: lint-and-unit-test
 
-on: [pull_request, push]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
 jobs:
 
-  check_pr:
+  test-job:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -12,12 +19,16 @@ jobs:
       with:
         node-version: 10.x
 
-    - name: "yarn install"
+    - name: Install dependencies
       run: yarn install
-
-    - name: "lint pull request code"
+    - name: Test code format
       run: yarn lint
-    - name: "unit test"
+
+    - name: Unit test and code covergae
       run: |
-        docker-compose up --force-recreate --build -d
-        docker-compose exec -T main npm run test
+        docker-compose run main npm run check-coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1.0.3
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}

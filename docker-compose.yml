@@ -39,3 +39,4 @@ services:
       - "/irohalab/indexer/dist"
     depends_on:
       - pg
+      - mongo
