@@ -61,7 +61,7 @@ export class TaskOrchestraSpec {
                 for (let {id, timestamp} of resolvedIds) {
                     if (lastTimestamp && lastId) {
                         Expect(id).toBeGreaterThan(lastId);
-                        Expect(timestamp - lastTimestamp).not.toBeLessThan(MIN_INTERVAL);
+                        Expect(timestamp - lastTimestamp).not.toBeLessThan(MIN_INTERVAL - 1);
                     }
                     lastTimestamp = timestamp;
                     lastId = id;
