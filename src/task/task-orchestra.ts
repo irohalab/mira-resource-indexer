@@ -10,7 +10,8 @@ export class TaskOrchestra {
     private _lastMainTaskExeTime  = 0;
     private _scraper: Scraper;
 
-    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
+                @inject(TYPES.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number) {
         this._taskQueue = [];
     }
 
@@ -29,14 +30,14 @@ export class TaskOrchestra {
     }
 
     private pick(): void {
-        let actualInterval = Math.floor((this._config.minInterval + Math.random() * 10.0) * 1000);
+        let actualInterval = this._taskTimingFactory(this._config.minInterval);
         if (this._taskQueue.length === 0) {
             // no task in the queue. schedule a new task.
             this.queue(new CommonTask(TaskType.MAIN));
             let offset = Date.now() - this._lastMainTaskExeTime;
             this._timerId = setTimeout(() => {
                 this.pick();
-            }, Math.max(this._config.minCheckInterval * 1000 - offset, actualInterval));
+            }, Math.max(this._config.minCheckInterval - offset, actualInterval));
         } else {
             // execute task from head of the queue
             let task = this._taskQueue.shift();

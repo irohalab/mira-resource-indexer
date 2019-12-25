@@ -1,19 +1,21 @@
 # Indexer for Albireo [![GitHub Actions status](https://github.com/irohalab/indexer/workflows/lint-and-unit-test/badge.svg)](https://github.com/irohalab/indexer)
 
-requirements: Postgres >= 9.5
+requirements: mongodb
 
 Indexer can be configured to different modes: dmhy, Bangumi.moe
-Database can be configured two modes: postgres, mongo
 
 ## Set environment variables
 
 - INDEXER_MODE what mode this indexer will work at. set `dmhy` or `bangumi_moe`
-- DB_MODE for databse instance, default is `mongo`, you can select `postgres`
 - DB_HOST host for database instance, default is `mongo`
 - DB_PORT port for database, default is `27017`
 - DB_USER user for database access, default is `admin`
 - DB_NAME database name, default is `dmhy_indexer`
 - DB_PASS password for postgres access, default is 123456
+- AUTH_SOURCE see https://docs.mongodb.com/manual/core/authentication/
+- SERVER_HOST the REST API server host, default is `0.0.0.0`
+- MIN_INTERVAL the minimal time between two query on source site
+- MIN_CHECK_INTERVAL the minimal time between two query on list page of source site
 
 ## Start from docker
 

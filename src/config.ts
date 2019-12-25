@@ -94,8 +94,8 @@ export class ConfigManager implements ConfigLoader {
         this._authSource = process.env.AUTH_SOURCE || 'admin';
         this._serverHost = process.env.SERVER_HOST || '0.0.0.0';
         this._serverPort = parseInt(process.env.SERVER_PORT, 10) || 35120;
-        this._minInterval = parseInt(process.env.MIN_INTERVAL, 10) || 10;
-        this._minCheckInterval = parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60);
+        this._minInterval = parseInt(process.env.MIN_INTERVAL, 10) || 10000;
+        this._minCheckInterval = parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60 * 1000);
         this._maxPageNo = parseInt(process.env.MAX_PAGE_NO, 10) || 5;
     }
 }
