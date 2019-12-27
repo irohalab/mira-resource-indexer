@@ -1,4 +1,4 @@
-import { Container } from 'inversify';
+import { Container, interfaces } from 'inversify';
 import 'reflect-metadata';
 import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
@@ -6,6 +6,7 @@ import { DmhyScraper } from './scraper/dmhy';
 import { RESTServer } from './server';
 import { MongodbStore } from './storage/mongodb-store';
 import { TaskOrchestra } from './task/task-orchestra';
+import { TaskTiming } from './task/task-timing';
 import { ConfigLoader, PersistentStorage, Scraper, TYPES } from './types';
 import './service/items-query';
 
@@ -15,6 +16,7 @@ container.bind<ConfigLoader>(TYPES.ConfigLoader).to(ConfigManager).inSingletonSc
 const config = container.get<ConfigLoader>(TYPES.ConfigLoader);
 config.load();
 /* bind TaskOrchestra */
+container.bind<interfaces.Factory<number>>(TYPES.TaskTimingFactory).toFactory<number>(TaskTiming);
 container.bind<TaskOrchestra>(TaskOrchestra).toSelf().inTransientScope();
 
 let store: PersistentStorage<number|string>;

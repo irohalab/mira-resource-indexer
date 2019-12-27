@@ -4,7 +4,8 @@ import { Task } from './task/task-types';
 export const TYPES = {
     ConfigLoader: Symbol.for('ConfigLoader'),
     PersistentStorage: Symbol.for('PersistentStorage'),
-    Scraper: Symbol.for('Scraper')
+    Scraper: Symbol.for('Scraper'),
+    TaskTimingFactory: Symbol.for('TaskTiming')
 };
 
 export interface PersistentStorage<T> {
@@ -35,8 +36,8 @@ export interface ConfigLoader {
     authSource: string; // see: https://docs.mongodb.com/manual/core/security-users/#user-authentication-database
     serverHost: string;
     serverPort: number;
-    minInterval: number; // for task, unit is second
-    minCheckInterval: number; // for main task, unit is second
+    minInterval: number; // for task, unit is millisecond
+    minCheckInterval: number; // for main task, unit is millisecond
     maxPageNo: number; // max page number for scrapping
     load(): void;
 }
