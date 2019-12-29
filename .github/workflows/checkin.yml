@@ -26,7 +26,14 @@ jobs:
 
     - name: Unit test and code covergae
       run: |
-        docker-compose run main npm run check-coverage
+        docker-compose up -d mongo
+        export INDEXER_MODE=dmhy
+        export DB_MODE=localhost
+        export DB_PORT=27017
+        export DB_USER=admin
+        export DB_NAME=dmhy_indexer
+        export DB_PASS=123456
+        npm run check-coverage
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1.0.3

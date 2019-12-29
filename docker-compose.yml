@@ -1,14 +1,5 @@
 version: "3.7"
 services:
-  pg:
-    image: postgres:9.5
-    ports:
-      - "${DB_EXPORT_PORT-54320}:5432"
-    environment:
-      POSTGRES_USER: "${DB_USER-admin}"
-      POSTGRES_PASSWORD: "${DB_PASS-123456}"
-      POSTGRES_DB: "${DB_NAME-dmhy_indexer}"
-
   mongo:
     image: mongo:3.4-xenial
     ports:
@@ -38,5 +29,4 @@ services:
       - "/irohalab/indexer/node_modules"
       - "/irohalab/indexer/dist"
     depends_on:
-      - pg
       - mongo

@@ -12,10 +12,10 @@ Indexer can be configured to different modes: dmhy, Bangumi.moe
 - DB_USER user for database access, default is `admin`
 - DB_NAME database name, default is `dmhy_indexer`
 - DB_PASS password for postgres access, default is 123456
-- AUTH_SOURCE see https://docs.mongodb.com/manual/core/authentication/
+- AUTH_SOURCE see https://docs.mongodb.com/manual/core/authentication/, default is `admin`
 - SERVER_HOST the REST API server host, default is `0.0.0.0`
-- MIN_INTERVAL the minimal time between two query on source site
-- MIN_CHECK_INTERVAL the minimal time between two query on list page of source site
+- MIN_INTERVAL the minimal time between two query on source site, default is `10000` millisecond
+- MIN_CHECK_INTERVAL the minimal time between two query on list page of source site, default is `900000` millisecond
 
 ## Start from docker
 
