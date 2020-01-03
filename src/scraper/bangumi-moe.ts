@@ -26,13 +26,24 @@ export class BangumiMoe implements Scraper {
 
     public async executeTask(task: Task): Promise<any> {
         if (task.type === TaskType.SUB) {
-            return this._getTorrentDetail((task as BangumiMoeTask).item);
+            let item = await this._getTorrentDetail((task as BangumiMoeTask).item);
+            if (!item) {
+                // retry task
+                this._taskOrchestra.queue(task);
+                return;
+            }
+            return await this._store.putItem(item);
         } else {
             let result;
             if (task instanceof BangumiMoeTask) {
                 result = await this._getList((task as BangumiMoeTask).pageNo);
             } else {
                 result = await this._getList();
+            }
+            if (!result) {
+                // retry task
+                this._taskOrchestra.queue(task);
+                return;
             }
             for (let item of result.items) {
                 this._taskOrchestra.queue(new BangumiMoeTask(TaskType.SUB, item));
@@ -73,7 +84,7 @@ export class BangumiMoe implements Scraper {
         return Promise.resolve(null);
     }
 
-    private async _getTorrentDetail(item: Item<string>): Promise<void> {
+    private async _getTorrentDetail(item: Item<string>): Promise<Item<string>> {
         console.log(`Scrapping ${BangumiMoe._host}/api/v2/torrent/${item.id}`);
         try {
             const resp = await Axios.get(`${BangumiMoe._host}/api/v2/torrent/${item.id}`);
@@ -103,10 +114,10 @@ export class BangumiMoe implements Scraper {
                     return mediaFile;
                 });
             }
-            await this._store.putItem(item);
+            return item;
         } catch (e) {
             console.warn(e.stack);
+            return null;
         }
-        return Promise.resolve();
     }
 }
