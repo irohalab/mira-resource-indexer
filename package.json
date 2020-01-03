@@ -3,8 +3,9 @@
   "version": "0.0.1",
   "scripts": {
     "clean:dist": "rimraf dist/*",
-    "build:dev": "npm run clean:dist && tsc",
-    "start": "npm run build:dev && concurrently \"tsc -w\" \"npm run watch\"",
+    "build": "npm run clean:dist && tsc",
+    "prod": "node dist/main.js",
+    "start": "npm run build && concurrently \"tsc -w\" \"npm run watch\"",
     "watch": "sleep 3 && nodemon --watch dist dist/main.js",
     "test:unit": "alsatian src/**/*.spec.ts",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
