@@ -10,8 +10,6 @@ jobs:
   release-package:
     runs-on: ubuntu-latest
     steps:
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v1
 
     - uses: actions/checkout@master
     - name: Publish to Registry
@@ -20,5 +18,6 @@ jobs:
         name: irohalab/indexer/indexer
         username: acgotaku
         password: ${{ secrets.GITHUB_TOKEN }}
+        buildoptions: "--target prod"
         registry: docker.pkg.github.com
         tag_names: true

@@ -1,0 +1,36 @@
+version: "3.7"
+
+web-common:
+  &web-common
+  build:
+    context: .
+    target: prod
+  cap_add:
+    - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker 
+  image: "indexer"
+  environment:
+    DB_HOST: "${DB_HOST-store}"
+    DB_PORT: "${DB_PORT-27017}"
+    DB_USER: "${DB_USER-admin}"
+    DB_PASS: "${DB_PASS-123456}"
+
+services:
+  dmhy:
+    << : *web-common
+    command: npm run prod
+    ports:
+      - "4000:4000"
+    environment:
+      INDEXER_MODE: "dmhy"
+      DB_NAME: "dmhy_indexer"
+      SERVER_PORT: "4000"
+
+  bangumi_moe:
+    << : *web-common
+    command: npm run prod
+    ports:
+      - "4200:4200"
+    environment:
+      INDEXER_MODE: "bangumi_moe"
+      DB_NAME: "bangumi_moe_indexer"
+      SERVER_PORT: "4200"
