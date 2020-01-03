@@ -16,7 +16,7 @@ jobs:
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
         name: irohalab/indexer/indexer
-        username: acgotaku
+        username:  ${{ secrets.USERNAME }}
         password: ${{ secrets.GITHUB_TOKEN }}
         buildoptions: "--target prod"
         registry: docker.pkg.github.com
