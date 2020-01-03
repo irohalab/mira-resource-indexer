@@ -9,7 +9,9 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: "${DB_PASS-123456}"
       MONGO_INITDB_DATABASE: "${DB_NAME-dmhy_indexer}"
   main:
-    build: .
+    build:
+      context: .
+      target: dev
     cap_add:
       - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker 
     image: "indexer"
@@ -18,7 +20,6 @@ services:
       - "9229:9229"
     environment:
       INDEXER_MODE: "${INDEXER_MODE-dmhy}"
-      DB_MODE: "${DB_MODE-mongo}"
       DB_HOST: "${DB_HOST-mongo}"
       DB_PORT: "${DB_PORT-27017}"
       DB_USER: "${DB_USER-admin}"
