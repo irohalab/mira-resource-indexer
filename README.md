@@ -16,6 +16,7 @@ Indexer can be configured to different modes: dmhy, Bangumi.moe
 - SERVER_HOST the REST API server host, default is `0.0.0.0`
 - MIN_INTERVAL the minimal time between two query on source site, default is `10000` millisecond
 - MIN_CHECK_INTERVAL the minimal time between two query on list page of source site, default is `900000` millisecond
+- SENTRY_DSN the dsn required for your sentry project. see https://sentry.io/iroha-lab/indexer/getting-started/node/
 
 ## Start from docker
 

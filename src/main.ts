@@ -9,6 +9,7 @@ import { TaskOrchestra } from './task/task-orchestra';
 import { TaskTiming } from './task/task-timing';
 import { ConfigLoader, PersistentStorage, Scraper, TYPES } from './types';
 import './service/items-query';
+import './utils/sentry';
 
 /* Initialize container */
 const container = new Container();
