@@ -21,7 +21,9 @@ export class BangumiMoe implements Scraper {
 
     constructor(@inject(TYPES.PersistentStorage) private _store: PersistentStorage<string>,
                 @inject(TYPES.ConfigLoader) private _config: ConfigLoader,
-                @inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra) {}
+                @inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra) {
+        this._taskRetriedTimes = new Map<number, number>();
+    }
 
     public async start(): Promise<any> {
         this._taskOrchestra.queue(new BangumiMoeTask(TaskType.MAIN));
