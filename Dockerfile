@@ -9,7 +9,7 @@ USER node
 COPY package.json yarn.lock ./
 RUN yarn install
 RUN mkdir dist
-COPY . .
+COPY --chown=node:node . .
 
 FROM dev AS prod
 RUN npm run build
