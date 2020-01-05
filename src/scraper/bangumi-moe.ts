@@ -37,6 +37,8 @@ export class BangumiMoe implements Scraper {
                 // retry task
                 this.retryTask(task);
                 return;
+            } else if (this._taskRetriedTimes.has(task.id)) {
+                this._taskRetriedTimes.delete(task.id);
             }
             return await this._store.putItem(item);
         } else {
@@ -50,6 +52,8 @@ export class BangumiMoe implements Scraper {
                 // retry task
                 this.retryTask(task);
                 return;
+            } else if (this._taskRetriedTimes.has(task.id)) {
+                this._taskRetriedTimes.delete(task.id);
             }
             for (let item of result.items) {
                 this._taskOrchestra.queue(new BangumiMoeTask(TaskType.SUB, item));

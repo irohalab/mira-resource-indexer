@@ -52,6 +52,8 @@ export class DmhyScraper implements Scraper {
             if (!result) {
                 this.retryTask(task);
                 return;
+            } else if (this._taskRetriedTimes.has(task.id)) {
+                this._taskRetriedTimes.delete(task.id);
             }
             for (let item of result.items) {
                 this._taskOrchestra.queue(new DmhyTask(TaskType.SUB, item));
@@ -71,6 +73,8 @@ export class DmhyScraper implements Scraper {
             if (!item) {
                 this.retryTask(task);
                 return;
+            } else if (this._taskRetriedTimes.has(task.id)) {
+                this._taskRetriedTimes.delete(task.id);
             }
             return await this._store.putItem(item);
         }
