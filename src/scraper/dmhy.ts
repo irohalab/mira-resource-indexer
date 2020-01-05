@@ -12,15 +12,20 @@ import { TaskOrchestra } from '../task/task-orchestra';
 import { Task, TaskType } from '../task/task-types';
 import { ConfigLoader, PersistentStorage, Scraper, TYPES } from '../types';
 import { toUTCDate, trimDomain } from '../utils/normalize';
+import { captureException, captureMessage } from '../utils/sentry';
+
+const MAX_TASK_RETRIED_TIMES = 10;
 
 @injectable()
 export class DmhyScraper implements Scraper {
     private static _host = 'https://share.dmhy.org';
     private _browser: Browser;
+    private _taskRetriedTimes: Map<number, number>;
+
     constructor(@inject(TYPES.PersistentStorage) private _store: PersistentStorage<number>,
                 @inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra,
                 @inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
-
+        this._taskRetriedTimes = new Map<number, number>();
     }
 
     public async start(): Promise<any> {
@@ -32,6 +37,7 @@ export class DmhyScraper implements Scraper {
     public async end(): Promise<any> {
         this._taskOrchestra.stop();
         await this._browser.close();
+        this._taskRetriedTimes.clear();
         return undefined;
     }
 
@@ -44,8 +50,7 @@ export class DmhyScraper implements Scraper {
                 result = await this.scrapListPage();
             }
             if (!result) {
-                // retry this task
-                this._taskOrchestra.queue(task);
+                this.retryTask(task);
                 return;
             }
             for (let item of result.items) {
@@ -64,7 +69,7 @@ export class DmhyScraper implements Scraper {
         } else {
             let item = await this.scrapDetailPage(this._browser, (task as DmhyTask).item);
             if (!item) {
-                this._taskOrchestra.queue(task);
+                this.retryTask(task);
                 return;
             }
             return await this._store.putItem(item);
@@ -114,6 +119,7 @@ export class DmhyScraper implements Scraper {
             });
             return {hasNext: newIds.length === items.length && newIds.length > 0, items: newItems};
         } catch (e) {
+            captureException(e);
             console.error(e.stack);
             return null;
         } finally {
@@ -200,7 +206,8 @@ export class DmhyScraper implements Scraper {
             }
             return item;
         } catch (e) {
-            console.error(e);
+            captureException(e);
+            console.error(e.stack);
             return null;
         } finally {
             await page.close();
@@ -213,5 +220,34 @@ export class DmhyScraper implements Scraper {
             return parseInt(match[1], 10);
         }
         return 0;
+    }
+
+    private checkMaxRetriedTime(task: Task): boolean {
+        if (this._taskRetriedTimes.has(task.id)) {
+            if (this._taskRetriedTimes.get(task.id) > MAX_TASK_RETRIED_TIMES) {
+                return true;
+            }
+            this._taskRetriedTimes.set(task.id, this._taskRetriedTimes.get(task.id) + 1);
+        } else {
+            this._taskRetriedTimes.set(task.id, 1);
+        }
+        return false;
+    }
+
+    private retryTask(task: Task): void {
+        // retry this task
+        if (this.checkMaxRetriedTime(task)) {
+            if (task instanceof DmhyTask) {
+                if (task.type === TaskType.MAIN) {
+                    captureMessage(`DmhyScaper, maximum retries reached, Main Task (${(task as DmhyTask).pageNo})`);
+                } else {
+                    captureMessage(`DmhyScaper, maximum retries reached, Sub Task (${JSON.stringify((task as DmhyTask).item)})`);
+                }
+            } else {
+                captureMessage('DmhyScraper, maximum retries reached, Common Task');
+            }
+            return;
+        }
+        this._taskOrchestra.queue(task);
     }
 }

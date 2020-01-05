@@ -9,7 +9,7 @@ import { TaskOrchestra } from './task/task-orchestra';
 import { TaskTiming } from './task/task-timing';
 import { ConfigLoader, PersistentStorage, Scraper, TYPES } from './types';
 import './service/items-query';
-import './utils/sentry';
+import { captureMessage } from './utils/sentry';
 
 /* Initialize container */
 const container = new Container();
@@ -51,6 +51,8 @@ process.on('SIGINT', async () => {
     await store.onStart();
     await scraper.start();
 })();
+
+captureMessage(`starting ${config.mode} scraper, REST service listening ${config.serverHost}:${config.serverPort}`);
 
 const server = new RESTServer(container, config);
 server.start();

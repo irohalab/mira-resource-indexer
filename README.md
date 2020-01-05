@@ -16,7 +16,7 @@ Indexer can be configured to different modes: dmhy, Bangumi.moe
 - SERVER_HOST the REST API server host, default is `0.0.0.0`
 - MIN_INTERVAL the minimal time between two query on source site, default is `10000` millisecond
 - MIN_CHECK_INTERVAL the minimal time between two query on list page of source site, default is `900000` millisecond
-- SENTRY_DSN the dsn required for your sentry project. see https://sentry.io/iroha-lab/indexer/getting-started/node/
+- SENTRY_DSN (optional) the dsn required for your sentry project. see the [Sentry](#Sentry) section
 
 ## Start from docker
 
@@ -45,3 +45,12 @@ $ docker-compose start pg
 $ docker-compose run --no-deps --rm --service-ports main bash
 node@add8121dc7c5:/irohalab/indexer$ npm run start
 ```
+
+## Sentry
+
+When deploy to test or production server. it's important to know the health of application. For example, you may need to
+ know a unusual network issue caused by source sites or you may experience incorrect format of scrapped page. All of these
+ information help you improve the application by analyzing data collected from error log.
+
+Sentry is an easy to use SaaS error log collect and analytics service. We have already integrated with its SDK. all you
+ need to do is registering your account and set up the environment variable SENTRY_DSN to your `dsn`. and wait for events.

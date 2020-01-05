@@ -10,10 +10,14 @@ import { BangumiMoeTask } from '../task/bangumi-moe-task';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { Task, TaskType } from '../task/task-types';
 import { ConfigLoader, PersistentStorage, Scraper, TYPES } from '../types';
+import { captureMessage } from '../utils/sentry';
+
+const MAX_TASK_RETRIED_TIMES = 10;
 
 @injectable()
 export class BangumiMoe implements Scraper {
     private static _host = 'https://bangumi.moe';
+    private _taskRetriedTimes: Map<number, number>;
 
     constructor(@inject(TYPES.PersistentStorage) private _store: PersistentStorage<string>,
                 @inject(TYPES.ConfigLoader) private _config: ConfigLoader,
@@ -29,7 +33,7 @@ export class BangumiMoe implements Scraper {
             let item = await this._getTorrentDetail((task as BangumiMoeTask).item);
             if (!item) {
                 // retry task
-                this._taskOrchestra.queue(task);
+                this.retryTask(task);
                 return;
             }
             return await this._store.putItem(item);
@@ -42,7 +46,7 @@ export class BangumiMoe implements Scraper {
             }
             if (!result) {
                 // retry task
-                this._taskOrchestra.queue(task);
+                this.retryTask(task);
                 return;
             }
             for (let item of result.items) {
@@ -119,5 +123,33 @@ export class BangumiMoe implements Scraper {
             console.warn(e.stack);
             return null;
         }
+    }
+
+    private checkMaxRetriedTime(task: Task): boolean {
+        if (this._taskRetriedTimes.has(task.id)) {
+            if (this._taskRetriedTimes.get(task.id) > MAX_TASK_RETRIED_TIMES) {
+                return true;
+            }
+            this._taskRetriedTimes.set(task.id, this._taskRetriedTimes.get(task.id) + 1);
+        } else {
+            this._taskRetriedTimes.set(task.id, 1);
+        }
+        return false;
+    }
+    private retryTask(task: Task): void {
+        // retry this task
+        if (this.checkMaxRetriedTime(task)) {
+            if (task instanceof BangumiMoeTask) {
+                if (task.type === TaskType.MAIN) {
+                    captureMessage(`BangumiMoeScaper, maximum retries reached, Main Task (${(task as BangumiMoeTask).pageNo})`);
+                } else {
+                    captureMessage(`BangumiMoeScaper, maximum retries reached, Sub Task (${JSON.stringify((task as BangumiMoeTask).item)})`);
+                }
+            } else {
+                captureMessage('BangumiMoeScaper, maximum retries reached, Common Task');
+            }
+            return;
+        }
+        this._taskOrchestra.queue(task);
     }
 }
