@@ -17,7 +17,6 @@ Indexer can be configured to different modes: dmhy, Bangumi.moe
 - MIN_INTERVAL the minimal time between two query on source site, default is `10000` millisecond
 - MIN_CHECK_INTERVAL the minimal time between two query on list page of source site, default is `900000` millisecond
 - SENTRY_DSN (optional) the dsn required for your sentry project. see the [Sentry](#Sentry) section
-- RELEASE (optional) release version of your project, will be used for Sentry
 
 ## Start from docker
 
