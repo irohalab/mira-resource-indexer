@@ -1,6 +1,6 @@
 {
   "name": "indexer",
-  "version": "0.1.0",
+  "version": "0.1.7",
   "scripts": {
     "clean:dist": "rimraf dist/*",
     "build": "npm run clean:dist && tsc",
