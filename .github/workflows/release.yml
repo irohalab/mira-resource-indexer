@@ -18,7 +18,7 @@ jobs:
         export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
         export SENTRY_ORG=${{ secrets.SENTRY_ORG }}
         export SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
-        export VERSION=$(git describe --tags)
+        export VERSION=indexer@$(git describe --tags)
         sentry-cli releases new $VERSION
         sentry-cli releases set-commits --auto $VERSION
 
@@ -37,5 +37,5 @@ jobs:
         export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
         export SENTRY_ORG=${{ secrets.SENTRY_ORG }}
         export SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
-        export VERSION=$(git describe --tags)
+        export VERSION=indexer@$(git describe --tags)
         sentry-cli releases finalize $VERSION
