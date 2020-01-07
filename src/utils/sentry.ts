@@ -1,9 +1,8 @@
 import { init, captureMessage as sentryCaptureMessage, captureException as sentryCaptureException } from '@sentry/node';
+import { version } from '../../package.json';
 const DSN = process.env.SENTRY_DSN;
-const RELEASE = process.env.RELEASE || process.env.npm_package_version;
-
 if (DSN) {
-    init({ dsn: DSN, release: `indexer@v${RELEASE}` });
+    init({ dsn: DSN, release: `indexer@v${version}` });
 }
 
 export function captureException(err: any) {

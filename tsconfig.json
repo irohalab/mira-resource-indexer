@@ -6,6 +6,7 @@
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
     "lib": [
       "es2017",
       "dom",
@@ -16,7 +17,6 @@
     "importHelpers": true,
     "baseUrl": "src",
     "outDir": "dist",
-    "rootDir": "src",
     "paths": {
       "*": ["node_modules/@types"]
     }
