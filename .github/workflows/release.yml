@@ -10,14 +10,32 @@ jobs:
   release-package:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v1
+    - name: Install Sentry CLI
+      run: curl -sL https://sentry.io/get-cli/ | bash
+    - name: Create a release
+      run: |
+        export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+        export SENTRY_ORG=${{ secrets.SENTRY_ORG }}
+        export SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
+        export VERSION=$(git describe --tags)
+        sentry-cli releases new $VERSION
+        sentry-cli releases set-commits --auto $VERSION
 
-    - uses: actions/checkout@master
     - name: Publish to Registry
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
         name: irohalab/indexer/indexer
-        username:  ${{ secrets.USERNAME }}
+        username: ${{ secrets.USERNAME }}
         password: ${{ secrets.GITHUB_TOKEN }}
         buildoptions: "--target prod"
         registry: docker.pkg.github.com
         tag_names: true
+
+    - name: Finalize release
+      run: |
+        export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+        export SENTRY_ORG=${{ secrets.SENTRY_ORG }}
+        export SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
+        export VERSION=$(git describe --tags)
+        sentry-cli releases finalize $VERSION
