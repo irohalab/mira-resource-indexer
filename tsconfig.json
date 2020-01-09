@@ -17,6 +17,7 @@
     "importHelpers": true,
     "baseUrl": "src",
     "outDir": "dist",
+    "rootDir": "src",
     "paths": {
       "*": ["node_modules/@types"]
     }

@@ -3,7 +3,7 @@
   "version": "0.1.7",
   "scripts": {
     "clean:dist": "rimraf dist/*",
-    "build": "npm run clean:dist && tsc",
+    "build": "npm run clean:dist && tsc && cp package.json dist",
     "prod": "node dist/main.js",
     "start": "npm run build && concurrently \"tsc -w\" \"npm run watch\"",
     "watch": "sleep 3 && nodemon --watch dist dist/main.js",
