@@ -20,6 +20,7 @@ services:
       INDEXER_MODE: "dmhy"
       DB_NAME: "dmhy_indexer"
       SERVER_PORT: "4000"
+      SENTRY_DSN: "${SENTRY_DSN}"
 
   bangumi_moe:
     << : *web-common
@@ -34,3 +35,4 @@ services:
       INDEXER_MODE: "bangumi_moe"
       DB_NAME: "bangumi_moe_indexer"
       SERVER_PORT: "4200"
+      SENTRY_DSN: "${SENTRY_DSN}"

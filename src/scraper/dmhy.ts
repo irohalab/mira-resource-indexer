@@ -16,7 +16,7 @@
 
 import { inject, injectable } from 'inversify';
 import { basename, extname } from 'path';
-import { Browser, launch } from 'puppeteer';
+import { Browser, launch, Page } from 'puppeteer';
 import { resolve } from 'url';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
@@ -32,6 +32,45 @@ import { captureException, captureMessage } from '../utils/sentry';
 
 const MAX_TASK_RETRIED_TIMES = 10;
 
+const PROXY = process.env.HTTP_PROXY; // a http proxy for this
+const IS_DEBUG = process.env.NODE_ENV === 'debug';
+const BLOCKED_RESOURCE_TYPES = [
+    'image',
+    'media',
+    'font',
+    'texttrack',
+    'object',
+    'beacon',
+    'csp_report',
+    'imageset'
+];
+const SKIPPED_RESOURCES = [
+    'quantserve',
+    'adzerk',
+    'doubleclick',
+    'adition',
+    'exelator',
+    'sharethrough',
+    'cdn.api.twitter',
+    'google-analytics',
+    'googletagmanager',
+    'google',
+    'fontawesome',
+    'facebook',
+    'analytics',
+    'optimizely',
+    'clicktale',
+    'mixpanel',
+    'zedo',
+    'clicksor',
+    'tiqcdn',
+    'js.kiwihk.net',
+    'hm.baidu.com',
+    'st.beibi.com',
+    'histats.com',
+    'e.dtscout.com'
+];
+
 @injectable()
 export class DmhyScraper implements Scraper {
     private static _host = 'https://share.dmhy.org';
@@ -45,7 +84,22 @@ export class DmhyScraper implements Scraper {
     }
 
     public async start(): Promise<any> {
-        this._browser = await launch();
+        let launchArgs = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--disable-gpu',
+            '--window-size=1920x1080'
+        ];
+        if (PROXY) {
+            launchArgs.push('--proxy-server=' + PROXY);
+        }
+        this._browser = await launch({
+            args: launchArgs,
+            headless: !IS_DEBUG
+        });
+
         this._taskOrchestra.queue(new DmhyTask(TaskType.MAIN));
         this._taskOrchestra.start(this);
     }
@@ -101,6 +155,8 @@ export class DmhyScraper implements Scraper {
         // page.setUserAgent('Mozilla/5.5 (X11; Linux x86_64) ' +
         //     'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36');
         try {
+            await page.setRequestInterception(true);
+            this.blockResources(page);
             let listPageUrl = DmhyScraper._host;
             if (pageNo) {
                 listPageUrl += '/topics/list/page/' + pageNo;
@@ -150,6 +206,8 @@ export class DmhyScraper implements Scraper {
     public async scrapDetailPage(browser: Browser, item: Item<number>): Promise<Item<number>> {
         const page = await browser.newPage();
         try {
+            await page.setRequestInterception(true);
+            this.blockResources(page);
             console.log(`Scrapping ${DmhyScraper._host + item.uri}`);
             await page.goto(DmhyScraper._host + item.uri, {
                 waitUntil: 'domcontentloaded'
@@ -269,5 +327,17 @@ export class DmhyScraper implements Scraper {
             return;
         }
         this._taskOrchestra.queue(task);
+    }
+
+    private blockResources(page: Page): void {
+        page.on('request', (request: any) => {
+            const requestUrl = request._url.split('?')[0].split('#')[0];
+            if (BLOCKED_RESOURCE_TYPES.indexOf(request.resourceType()) !== -1 ||
+                SKIPPED_RESOURCES.some(resource => requestUrl.indexOf(resource)  !== -1)) {
+                request.abort();
+            } else {
+                request.continue();
+            }
+        });
     }
 }
