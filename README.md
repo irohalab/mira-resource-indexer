@@ -1,4 +1,6 @@
-# Indexer for Albireo [![GitHub Actions status](https://github.com/irohalab/indexer/workflows/lint-and-unit-test/badge.svg)](https://github.com/irohalab/indexer)
+# Mira Resource Indexer [![GitHub Actions status](https://github.com/irohalab/indexer/workflows/lint-and-unit-test/badge.svg)](https://github.com/irohalab/indexer)
+
+A part of Project Mira
 
 requirements: mongodb
 
