@@ -2,7 +2,7 @@ version: "3.7"
 # before start we need set DOCKER_TAG
 x-web-common:
   &web-common
-  image: "docker.pkg.github.com/irohalab/indexer/indexer:${DOCKER_TAG}"
+  image: "docker.pkg.github.com/irohalab/mira-resource-indexer/indexer:${DOCKER_TAG}"
   cap_add:
     - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker
 
