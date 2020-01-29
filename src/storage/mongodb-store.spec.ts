@@ -18,7 +18,6 @@ import { Expect, Ignore, Setup, SetupFixture, Teardown, TeardownFixture, Test, T
 import { fail } from 'assert';
 import { Container } from 'inversify';
 import { FakeConfigManager } from '../test/fake-config';
-import { Item } from '../entity/Item';
 import { ConfigLoader, PersistentStorage, TYPES } from '../types';
 import { items } from '../test/test-samples';
 import { MongoClient } from 'mongodb';
@@ -79,7 +78,7 @@ export class MongodbStoreSpec {
         });
     }
 
-    @TestCase('Dr. Stone', [0])
+    @TestCase('Dr. Stone', [0, 1])
     @Test('Should able to search item via keyword')
     public async searchItem(keyword: string, resultIndexes: number[]): Promise<void> {
         for (let item of items) {

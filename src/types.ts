@@ -55,5 +55,6 @@ export interface ConfigLoader {
     minInterval: number; // for task, unit is millisecond
     minCheckInterval: number; // for main task, unit is millisecond
     maxPageNo: number; // max page number for scrapping
+    maxSearchCount: number; // max search result count
     load(): void;
 }

@@ -32,6 +32,7 @@ export class FakeConfigManager implements ConfigLoader {
     public minCheckInterval: number;
     public minInterval: number;
     public maxPageNo: number;
+    public maxSearchCount: number;
     public serverHost: string;
 
     public load(): void {
@@ -55,5 +56,6 @@ export class FakeConfigManager implements ConfigLoader {
         this.minInterval = parseInt(process.env.MIN_INTERVAL, 10) || 10;
         this.minCheckInterval = parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60);
         this.maxPageNo = parseInt(process.env.MAX_PAGE_NO, 10) || 5;
+        this.maxSearchCount = parseInt(process.env.MAX_SEARCH_COUNT, 10) || 100;
     }
 }
