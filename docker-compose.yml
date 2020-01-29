@@ -18,6 +18,7 @@ services:
     command: npm run start
     ports:
       - "9229:9229"
+      - "35120:35120"
     environment:
       INDEXER_MODE: "${INDEXER_MODE-dmhy}"
       DB_HOST: "${DB_HOST-mongo}"
@@ -25,6 +26,13 @@ services:
       DB_USER: "${DB_USER-admin}"
       DB_NAME: "${DB_NAME-dmhy_indexer}"
       DB_PASS: "${DB_PASS-123456}"
+      AUTH_SOURCE: "${AUTH_SOURCE-admin}"
+      SERVER_HOST: "${SERVER_HOST-0.0.0.0}"
+      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
+      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
+      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
+      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
+      SENTRY_DSN: ${SENTRY_DSN}
     volumes:
       - ".:/irohalab/indexer"
       - "/irohalab/indexer/node_modules"

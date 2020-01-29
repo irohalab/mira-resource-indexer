@@ -39,6 +39,7 @@ export class ConfigManager implements ConfigLoader {
     private _minInterval: number;
     private _minCheckInterval: number;
     private _maxPageNo: number;
+    private _maxSearchCount: number;
 
     public get mode(): string {
         return this._mode;
@@ -92,6 +93,10 @@ export class ConfigManager implements ConfigLoader {
         return this._maxPageNo;
     }
 
+    public get maxSearchCount(): number {
+        return this._maxSearchCount;
+    }
+
     public load(): void {
         this._mode = process.env.INDEXER_MODE;
         if (!this._mode) {
@@ -113,5 +118,6 @@ export class ConfigManager implements ConfigLoader {
         this._minInterval = parseInt(process.env.MIN_INTERVAL, 10) || 10000;
         this._minCheckInterval = parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60 * 1000);
         this._maxPageNo = parseInt(process.env.MAX_PAGE_NO, 10) || 5;
+        this._maxSearchCount = parseInt(process.env.MAX_SEARCH_COUNT, 10) || 100;
     }
 }
