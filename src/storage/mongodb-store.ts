@@ -67,9 +67,10 @@ export class MongodbStore<T> implements PersistentStorage<T> {
         let rgx = rgxArr.map(s => escapeRegExp(s)).join('.*?');
         const cursor = this._db.collection(this._collectionName).find({
             title: {
+                $options: 'i',
                 $regex: rgx
             }
-        });
+        }).sort({ timestamp: -1 }).limit(this._config.maxSearchCount);
         return Promise.resolve(cursor.toArray());
     }
 
@@ -80,7 +81,7 @@ export class MongodbStore<T> implements PersistentStorage<T> {
     public async onStart(): Promise<void> {
         const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
             this._config.dbHost
-          }:${this._config.dbPort}?authSource=${this._config.authSource}`;
+            }:${this._config.dbPort}?authSource=${this._config.authSource}`;
         this._client = await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
         this._db = this._client.db(this._config.dbName);
         return Promise.resolve();
