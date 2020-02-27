@@ -19,6 +19,7 @@ import 'reflect-metadata';
 import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
+import { NyaaScraper } from './scraper/nyaa';
 import { RESTServer } from './server';
 import { MongodbStore } from './storage/mongodb-store';
 import { TaskOrchestra } from './task/task-orchestra';
@@ -48,6 +49,11 @@ switch (config.mode) {
         container.bind<PersistentStorage<string>>(TYPES.PersistentStorage).to(MongodbStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(BangumiMoe).inSingletonScope();
         store = container.get<PersistentStorage<string>>(TYPES.PersistentStorage);
+        break;
+    case ConfigManager.NYAA:
+        container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(MongodbStore).inSingletonScope();
+        container.bind<Scraper>(TYPES.Scraper).to(NyaaScraper).inSingletonScope();
+        store = container.get<PersistentStorage<number>>(TYPES.PersistentStorage);
         break;
     default:
         throw new Error('Mode is not supported yet');

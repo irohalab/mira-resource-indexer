@@ -36,3 +36,18 @@ services:
       DB_NAME: "bangumi_moe_indexer"
       SERVER_PORT: "4200"
       SENTRY_DSN: "${SENTRY_DSN}"
+
+  nyaa:
+    << : *web-common
+    command: npm run prod
+    ports:
+      - "4300:4300"
+    environment:
+      DB_HOST: "${DB_HOST-store}"
+      DB_PORT: "${DB_PORT-27017}"
+      DB_USER: "${DB_USER-admin}"
+      DB_PASS: "${DB_PASS-123456}"
+      INDEXER_MODE: "nyaa"
+      DB_NAME: "nyaa_indexer"
+      SERVER_PORT: "4300"
+      SENTRY_DSN: "${SENTRY_DSN}"
