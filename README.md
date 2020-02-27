@@ -8,7 +8,7 @@ Indexer can be configured to different modes: dmhy, Bangumi.moe
 
 ## Set environment variables
 
-- INDEXER_MODE what mode this indexer will work at. set `dmhy` or `bangumi_moe`
+- INDEXER_MODE what mode this indexer will work at. set `dmhy` or `bangumi_moe` or `nyaa`
 - DB_HOST host for database instance, default is `mongo`
 - DB_PORT port for database, default is `27017`
 - DB_USER user for database access, default is `admin`
