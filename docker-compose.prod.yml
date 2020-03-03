@@ -9,7 +9,7 @@ x-web-common:
 services:
   dmhy:
     << : *web-common
-    command: npm run prod
+    command: node --title=dmhy dist/main.js
     ports:
       - "4000:4000"
     environment:
@@ -24,7 +24,7 @@ services:
 
   bangumi_moe:
     << : *web-common
-    command: npm run prod
+    command: node --title=bangumi_moe dist/main.js
     ports:
       - "4200:4200"
     environment:
@@ -39,7 +39,7 @@ services:
 
   nyaa:
     << : *web-common
-    command: npm run prod
+    command: node --title=nyaa dist/main.js
     ports:
       - "4300:4300"
     environment:
