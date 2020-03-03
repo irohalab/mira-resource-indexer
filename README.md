@@ -45,7 +45,7 @@ $ docker-compose up --build -d
 - Run `main` container in bash mode
 
 ```
-$ docker-compose start pg
+$ docker-compose start mongo
 $ docker-compose run --no-deps --rm --service-ports main bash
 node@add8121dc7c5:/irohalab/indexer$ npm run start
 ```
