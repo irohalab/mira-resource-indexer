@@ -15,83 +15,32 @@
  */
 
 import Axios from 'axios';
-import cheerio = require('cheerio');
 import { inject, injectable } from 'inversify';
 import { basename, extname } from 'path';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
 import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
-import { NyaaTask } from '../task/nyaa-task';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { Task, TaskType } from '../task/task-types';
-import { ConfigLoader, PersistentStorage, Scraper, TYPES } from '../types';
-import { captureException, captureMessage } from '../utils/sentry';
-
-const MAX_TASK_RETRIED_TIMES = 10;
+import { ConfigLoader, PersistentStorage, TYPES } from '../types';
+import { captureException } from '../utils/sentry';
+import { BaseScraper } from './abstract/base-scraper';
+import cheerio = require('cheerio');
 
 @injectable()
-export class NyaaScraper implements Scraper {
+export class NyaaScraper extends BaseScraper<number> {
     private static _host = 'https://nyaa.si';
-    private _taskRetriedTimes: Map<number, number>;
 
     constructor(
-        @inject(TYPES.PersistentStorage)
-        private _store: PersistentStorage<number>,
-        @inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra,
-        @inject(TYPES.ConfigLoader) private _config: ConfigLoader
+        @inject(TYPES.PersistentStorage) store: PersistentStorage<number>,
+        @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
+        @inject(TYPES.ConfigLoader) config: ConfigLoader
     ) {
+        super(taskOrchestra, config, store);
         this._taskRetriedTimes = new Map<number, number>();
     }
 
-    public async start(): Promise<any> {
-        this._taskOrchestra.queue(new NyaaTask(TaskType.MAIN));
-        this._taskOrchestra.start(this);
-    }
-
-    public async executeTask(task: Task): Promise<any> {
-        if (task.type === TaskType.MAIN) {
-            let result;
-            if (task instanceof NyaaTask) {
-                result = await this.scrapListPage((task as NyaaTask).pageNo);
-            } else {
-                result = await this.scrapListPage();
-            }
-            if (!result) {
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
-            for (let item of result.items) {
-                this._taskOrchestra.queue(new NyaaTask(TaskType.SUB, item));
-            }
-            if (
-                result.hasNext &&
-                (task as NyaaTask).pageNo < this._config.maxPageNo
-            ) {
-                let newTask = new NyaaTask(TaskType.MAIN);
-                let previousPageNo = (task as NyaaTask).pageNo;
-                if (previousPageNo) {
-                    newTask.pageNo = previousPageNo + 1;
-                } else {
-                    newTask.pageNo = 2;
-                }
-                this._taskOrchestra.queue(newTask);
-            }
-        } else {
-            let item = await this.scrapDetailPage((task as NyaaTask).item);
-            if (!item) {
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
-            return await this._store.putItem(item);
-        }
-    }
-
-    public async scrapListPage(pageNo?: number): Promise<{ items: Array<Item<number>>, hasNext: boolean }> {
+    public async executeMainTask(pageNo?: number): Promise<{ items: Array<Item<number>>, hasNext: boolean }> {
         try {
             let listPageUrl = NyaaScraper._host;
             if (pageNo) {
@@ -129,9 +78,11 @@ export class NyaaScraper implements Scraper {
         }
     }
 
-    public async scrapDetailPage(item: Item<number>): Promise<Item<number>> {
+    public async executeSubTask(item: Item<number>): Promise<number> {
+        let statusCode = -1;
         try {
             const resp = await Axios.get(`${NyaaScraper._host}${item.uri}`);
+            statusCode = resp.status;
             console.log(`Scrapping ${NyaaScraper._host}${item.uri}`);
             const $ = cheerio.load(resp.data);
             const panels = $('.container > .panel');
@@ -173,16 +124,14 @@ export class NyaaScraper implements Scraper {
                 mediaFile.name = basename(mediaFile.path, mediaFile.ext);
                 item.files.push(mediaFile);
             }
-            return item;
         } catch (e) {
+            if (e.response) {
+                statusCode = e.response.status;
+            }
             captureException(e);
             console.error(e.stack);
-            return null;
         }
-    }
-
-    public async end(): Promise<any> {
-        return Promise.resolve();
+        return statusCode;
     }
 
     private getIdFromUri(uri: string, regex: RegExp = /\/view\/(\d+)/): number {
@@ -196,38 +145,8 @@ export class NyaaScraper implements Scraper {
     private getTypeIdFromUri(uri: string, regex: RegExp = /\/?c=(\d+)_(\d+)/): number {
         const match = uri.match(regex);
         if (match) {
-            let type = parseInt(match[1], 10) * 100 + parseInt(match[2], 10);
-            return type;
+            return parseInt(match[1], 10) * 100 + parseInt(match[2], 10);
         }
         return 0;
-    }
-
-    private checkMaxRetriedTime(task: Task): boolean {
-        if (this._taskRetriedTimes.has(task.id)) {
-            if (this._taskRetriedTimes.get(task.id) > MAX_TASK_RETRIED_TIMES) {
-                return true;
-            }
-            this._taskRetriedTimes.set(task.id, this._taskRetriedTimes.get(task.id) + 1);
-        } else {
-            this._taskRetriedTimes.set(task.id, 1);
-        }
-        return false;
-    }
-
-    private retryTask(task: Task): void {
-        // retry this task
-        if (this.checkMaxRetriedTime(task)) {
-            if (task instanceof NyaaTask) {
-                if (task.type === TaskType.MAIN) {
-                    captureMessage(`NyaaScaper, maximum retries reached, Main Task (${(task as NyaaTask).pageNo})`);
-                } else {
-                    captureMessage(`NyaaScaper, maximum retries reached, Sub Task (${JSON.stringify((task as NyaaTask).item)})`);
-                }
-            } else {
-                captureMessage('NyaaScraper, maximum retries reached, Common Task');
-            }
-            return;
-        }
-        this._taskOrchestra.queue(task);
     }
 }
