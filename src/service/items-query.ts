@@ -31,6 +31,13 @@ export class ItemsQuery<T> extends BaseHttpController {
         if (!keyword) {
             return this.badRequest('keyword required');
         }
-        return this.json(await this._storage.searchItem(keyword), 200);
+        let items = await this._storage.searchItem(keyword);
+        if (!items) {
+            items = [];
+        }
+        items.forEach(item => {
+            item._id = undefined;
+        });
+        return this.json(items, 200);
     }
 }
