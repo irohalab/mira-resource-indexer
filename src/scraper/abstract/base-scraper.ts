@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { injectable } from 'inversify';
 import { Item } from '../../entity/Item';
 import { MainTask } from '../../task/main-task';
 import { SubTask } from '../../task/sub-task';
@@ -24,6 +25,7 @@ import { captureMessage } from '../../utils/sentry';
 
 const MAX_TASK_RETRIED_TIMES = 10;
 
+@injectable()
 export abstract class BaseScraper<T> implements Scraper {
     protected _taskRetriedTimes: Map<number, number>;
 
