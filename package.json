@@ -44,6 +44,7 @@
     "tslint": "^5.12.1"
   },
   "resolutions": {
-    "minimist": "^0.2.1"
+    "minimist": "^0.2.1",
+    "kind-of": "^6.0.3"
   }
 }
