@@ -1,6 +1,6 @@
 {
   "name": "indexer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "scripts": {
     "clean:dist": "rimraf dist/*",
     "build": "npm run clean:dist && tsc && cp package.json dist",
@@ -42,5 +42,9 @@
     "rimraf": "^2.6.2",
     "tslib": "^1.9.3",
     "tslint": "^5.12.1"
+  },
+  "resolutions": {
+    "minimist": "^0.2.1",
+    "kind-of": "^6.0.3"
   }
 }

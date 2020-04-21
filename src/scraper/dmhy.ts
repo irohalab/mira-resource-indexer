@@ -23,14 +23,11 @@ import { ItemType } from '../entity/item-type';
 import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
-import { DmhyTask } from '../task/dmhy-task';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { Task, TaskType } from '../task/task-types';
-import { ConfigLoader, PersistentStorage, Scraper, TYPES } from '../types';
+import { ConfigLoader, PersistentStorage, TYPES } from '../types';
 import { toUTCDate, trimDomain } from '../utils/normalize';
-import { captureException, captureMessage } from '../utils/sentry';
-
-const MAX_TASK_RETRIED_TIMES = 10;
+import { captureException } from '../utils/sentry';
+import { BaseScraper } from './abstract/base-scraper';
 
 const PROXY = process.env.HTTP_PROXY; // a http proxy for this
 const IS_DEBUG = process.env.NODE_ENV === 'debug';
@@ -72,14 +69,14 @@ const SKIPPED_RESOURCES = [
 ];
 
 @injectable()
-export class DmhyScraper implements Scraper {
+export class DmhyScraper extends BaseScraper<number> {
     private static _host = 'https://share.dmhy.org';
     private _browser: Browser;
-    private _taskRetriedTimes: Map<number, number>;
 
-    constructor(@inject(TYPES.PersistentStorage) private _store: PersistentStorage<number>,
-                @inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra,
-                @inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+    constructor(@inject(TYPES.PersistentStorage) store: PersistentStorage<number>,
+                @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
+                @inject(TYPES.ConfigLoader) config: ConfigLoader) {
+        super(taskOrchestra, config, store);
         this._taskRetriedTimes = new Map<number, number>();
     }
 
@@ -100,57 +97,15 @@ export class DmhyScraper implements Scraper {
             headless: !IS_DEBUG
         });
 
-        this._taskOrchestra.queue(new DmhyTask(TaskType.MAIN));
-        this._taskOrchestra.start(this);
+        return super.start();
     }
 
     public async end(): Promise<any> {
-        this._taskOrchestra.stop();
+        await super.end();
         await this._browser.close();
-        this._taskRetriedTimes.clear();
-        return undefined;
     }
 
-    public async executeTask(task: Task): Promise<any> {
-        if (task.type === TaskType.MAIN) {
-            let result;
-            if (task instanceof DmhyTask) {
-                result = await this.scrapListPage((task as DmhyTask).pageNo);
-            } else {
-                result = await this.scrapListPage();
-            }
-            if (!result) {
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
-            for (let item of result.items) {
-                this._taskOrchestra.queue(new DmhyTask(TaskType.SUB, item));
-            }
-            if (result.hasNext && (task as DmhyTask).pageNo < this._config.maxPageNo) {
-                let newTask = new DmhyTask(TaskType.MAIN);
-                let previousPageNo = (task as DmhyTask).pageNo;
-                if (previousPageNo) {
-                    newTask.pageNo = previousPageNo + 1;
-                } else {
-                    newTask.pageNo = 2;
-                }
-                this._taskOrchestra.queue(newTask);
-            }
-        } else {
-            let item = await this.scrapDetailPage(this._browser, (task as DmhyTask).item);
-            if (!item) {
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
-            return await this._store.putItem(item);
-        }
-    }
-
-    public async scrapListPage(pageNo?: number): Promise<{items: Array<Item<number>>, hasNext: boolean}> {
+    public async executeMainTask(pageNo?: number): Promise<{items: Array<Item<number>>, hasNext: boolean}> {
         const page = await this._browser.newPage();
         // page.setUserAgent('Mozilla/5.5 (X11; Linux x86_64) ' +
         //     'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36');
@@ -203,15 +158,17 @@ export class DmhyScraper implements Scraper {
         }
     }
 
-    public async scrapDetailPage(browser: Browser, item: Item<number>): Promise<Item<number>> {
-        const page = await browser.newPage();
+    public async executeSubTask(item: Item<number>): Promise<number> {
+        const page = await this._browser.newPage();
+        let statusCode = -1;
         try {
             await page.setRequestInterception(true);
             this.blockResources(page);
             console.log(`Scrapping ${DmhyScraper._host + item.uri}`);
-            await page.goto(DmhyScraper._host + item.uri, {
+            const response = await page.goto(DmhyScraper._host + item.uri, {
                 waitUntil: 'domcontentloaded'
             });
+            statusCode = response.status();
             let mainArea = await page.$('.main > .topics_bk');
 
             item.title = await page.evaluate(el => {
@@ -282,14 +239,16 @@ export class DmhyScraper implements Scraper {
                 mediaFile.name = basename(mediaFile.path, mediaFile.ext);
                 item.files.push(mediaFile);
             }
-            return item;
         } catch (e) {
+            if (e.response) {
+                statusCode = e.response.status;
+            }
             captureException(e);
             console.error(e.stack);
-            return null;
         } finally {
             await page.close();
         }
+        return statusCode;
     }
 
     private getIdFromUri(uri: string, regex: RegExp = /\/topics\/view\/(\d+)_.+/): number {
@@ -298,35 +257,6 @@ export class DmhyScraper implements Scraper {
             return parseInt(match[1], 10);
         }
         return 0;
-    }
-
-    private checkMaxRetriedTime(task: Task): boolean {
-        if (this._taskRetriedTimes.has(task.id)) {
-            if (this._taskRetriedTimes.get(task.id) > MAX_TASK_RETRIED_TIMES) {
-                return true;
-            }
-            this._taskRetriedTimes.set(task.id, this._taskRetriedTimes.get(task.id) + 1);
-        } else {
-            this._taskRetriedTimes.set(task.id, 1);
-        }
-        return false;
-    }
-
-    private retryTask(task: Task): void {
-        // retry this task
-        if (this.checkMaxRetriedTime(task)) {
-            if (task instanceof DmhyTask) {
-                if (task.type === TaskType.MAIN) {
-                    captureMessage(`DmhyScaper, maximum retries reached, Main Task (${(task as DmhyTask).pageNo})`);
-                } else {
-                    captureMessage(`DmhyScaper, maximum retries reached, Sub Task (${JSON.stringify((task as DmhyTask).item)})`);
-                }
-            } else {
-                captureMessage('DmhyScraper, maximum retries reached, Common Task');
-            }
-            return;
-        }
-        this._taskOrchestra.queue(task);
     }
 
     private blockResources(page: Page): void {

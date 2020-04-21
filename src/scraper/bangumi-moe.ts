@@ -22,71 +22,23 @@ import { ItemType } from '../entity/item-type';
 import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
-import { BangumiMoeTask } from '../task/bangumi-moe-task';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { Task, TaskType } from '../task/task-types';
-import { ConfigLoader, PersistentStorage, Scraper, TYPES } from '../types';
-import { captureMessage } from '../utils/sentry';
-
-const MAX_TASK_RETRIED_TIMES = 10;
+import { ConfigLoader, PersistentStorage, TYPES } from '../types';
+import { captureException } from '../utils/sentry';
+import { BaseScraper } from './abstract/base-scraper';
 
 @injectable()
-export class BangumiMoe implements Scraper {
+export class BangumiMoe extends BaseScraper<string> {
     private static _host = 'https://bangumi.moe';
-    private _taskRetriedTimes: Map<number, number>;
 
-    constructor(@inject(TYPES.PersistentStorage) private _store: PersistentStorage<string>,
-                @inject(TYPES.ConfigLoader) private _config: ConfigLoader,
-                @inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra) {
+    constructor(@inject(TYPES.PersistentStorage) store: PersistentStorage<string>,
+                @inject(TYPES.ConfigLoader) config: ConfigLoader,
+                @inject(TaskOrchestra) taskOrchestra: TaskOrchestra) {
+        super(taskOrchestra, config, store);
         this._taskRetriedTimes = new Map<number, number>();
     }
 
-    public async start(): Promise<any> {
-        this._taskOrchestra.queue(new BangumiMoeTask(TaskType.MAIN));
-        this._taskOrchestra.start(this);
-    }
-
-    public async executeTask(task: Task): Promise<any> {
-        if (task.type === TaskType.SUB) {
-            let item = await this._getTorrentDetail((task as BangumiMoeTask).item);
-            if (!item) {
-                // retry task
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
-            return await this._store.putItem(item);
-        } else {
-            let result;
-            if (task instanceof BangumiMoeTask) {
-                result = await this._getList((task as BangumiMoeTask).pageNo);
-            } else {
-                result = await this._getList();
-            }
-            if (!result) {
-                // retry task
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
-            for (let item of result.items) {
-                this._taskOrchestra.queue(new BangumiMoeTask(TaskType.SUB, item));
-            }
-            if (result.hasNext && (task as BangumiMoeTask).pageNo < this._config.maxPageNo) {
-                let newTask = new BangumiMoeTask(TaskType.MAIN);
-                newTask.pageNo = (task as BangumiMoeTask).pageNo + 1;
-                this._taskOrchestra.queue(newTask);
-            }
-        }
-    }
-
-    public end(): Promise<any> {
-        return undefined;
-    }
-
-    private async _getList(pageNo: number = 1): Promise<{items: Array<Item<string>>, hasNext: boolean}> {
+    public async executeMainTask(pageNo: number = 1): Promise<{items: Array<Item<string>>, hasNext: boolean}> {
         console.log(`Scrapping ${BangumiMoe._host}/api/v2/torrent/page/${pageNo}`);
         try {
             const resp = await Axios.get(`${BangumiMoe._host}/api/v2/torrent/page/${pageNo}`);
@@ -106,14 +58,17 @@ export class BangumiMoe implements Scraper {
             return {hasNext: newIds.length === listData.torrents.length && newIds.length > 0, items};
         } catch (e) {
             console.warn(e.stack);
+            captureException(e);
         }
         return Promise.resolve(null);
     }
 
-    private async _getTorrentDetail(item: Item<string>): Promise<Item<string>> {
+    public async executeSubTask(item: Item<string>): Promise<number> {
         console.log(`Scrapping ${BangumiMoe._host}/api/v2/torrent/${item.id}`);
+        let statusCode = -1;
         try {
             const resp = await Axios.get(`${BangumiMoe._host}/api/v2/torrent/${item.id}`);
+            statusCode = resp.status;
             const detailData = resp.data as any;
             if (detailData.category_tag) {
                 item.type = new ItemType<string>();
@@ -140,38 +95,14 @@ export class BangumiMoe implements Scraper {
                     return mediaFile;
                 });
             }
-            return item;
-        } catch (e) {
-            console.warn(e.stack);
-            return null;
-        }
-    }
 
-    private checkMaxRetriedTime(task: Task): boolean {
-        if (this._taskRetriedTimes.has(task.id)) {
-            if (this._taskRetriedTimes.get(task.id) > MAX_TASK_RETRIED_TIMES) {
-                return true;
+        } catch (e) {
+            if (e.response) {
+                statusCode = e.response.status;
             }
-            this._taskRetriedTimes.set(task.id, this._taskRetriedTimes.get(task.id) + 1);
-        } else {
-            this._taskRetriedTimes.set(task.id, 1);
+            console.warn(e.stack);
+            captureException(e);
         }
-        return false;
-    }
-    private retryTask(task: Task): void {
-        // retry this task
-        if (this.checkMaxRetriedTime(task)) {
-            if (task instanceof BangumiMoeTask) {
-                if (task.type === TaskType.MAIN) {
-                    captureMessage(`BangumiMoeScaper, maximum retries reached, Main Task (${(task as BangumiMoeTask).pageNo})`);
-                } else {
-                    captureMessage(`BangumiMoeScaper, maximum retries reached, Sub Task (${JSON.stringify((task as BangumiMoeTask).item)})`);
-                }
-            } else {
-                captureMessage('BangumiMoeScaper, maximum retries reached, Common Task');
-            }
-            return;
-        }
-        this._taskOrchestra.queue(task);
+        return statusCode;
     }
 }
