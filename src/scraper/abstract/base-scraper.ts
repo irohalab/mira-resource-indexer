@@ -75,6 +75,9 @@ export abstract class BaseScraper<T> implements Scraper {
                 this.retryTask(task);
                 return;
             }
+            if (this._taskRetriedTimes.has(task.id)) {
+                this._taskRetriedTimes.delete(task.id);
+            }
         }
     }
 
