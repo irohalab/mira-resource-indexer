@@ -66,13 +66,15 @@ export abstract class BaseScraper<T> implements Scraper {
         } else {
             let item = (task as SubTask<T>).item;
             let httpStatusCode = await this.executeSubTask(item);
-            if (httpStatusCode !== 404) {
+            if (httpStatusCode === 200) {
+                if (this._taskRetriedTimes.has(task.id)) {
+                    this._taskRetriedTimes.delete(task.id);
+                }
+                return await this._store.putItem(item);
+            } else if (httpStatusCode !== 404) {
                 this.retryTask(task);
                 return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
             }
-            return await this._store.putItem(item);
         }
     }
 
