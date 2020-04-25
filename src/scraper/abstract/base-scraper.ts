@@ -27,11 +27,13 @@ const MAX_TASK_RETRIED_TIMES = 10;
 
 @injectable()
 export abstract class BaseScraper<T> implements Scraper {
+    protected className: string;
     protected _taskRetriedTimes: Map<number, number>;
 
     protected constructor(protected _taskOrchestra: TaskOrchestra,
                           protected _config: ConfigLoader,
                           protected _store: PersistentStorage<T>) {
+        this.className = this.constructor.name;
     }
 
     public abstract executeMainTask(pageNo?: number): Promise<{items: Array<Item<T>>, hasNext: boolean}>;
@@ -107,11 +109,11 @@ export abstract class BaseScraper<T> implements Scraper {
         // retry this task
         if (this.checkMaxRetriedTime(task)) {
             if (task instanceof MainTask && task.type === TaskType.MAIN) {
-                captureMessage(`DmhyScaper, maximum retries reached, Main Task (${task.pageNo})`);
+                captureMessage(`${this.className}, maximum retries reached, Main Task (${task.pageNo})`);
             } else if (task instanceof SubTask && task.type === TaskType.SUB) {
-                captureMessage(`DmhyScaper, maximum retries reached, Sub Task (${JSON.stringify(task.item)})`);
+                captureMessage(`${this.className}, maximum retries reached, Sub Task (${JSON.stringify(task.item)})`);
             } else {
-                captureMessage('DmhyScraper, maximum retries reached, Common Task');
+                captureMessage(`${this.className}, maximum retries reached, Common Task`);
             }
             return;
         }
