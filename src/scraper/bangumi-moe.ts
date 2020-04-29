@@ -99,6 +99,8 @@ export class BangumiMoe extends BaseScraper<string> {
         } catch (e) {
             if (e.response) {
                 statusCode = e.response.status;
+            } else {
+                statusCode = -1;
             }
             console.warn(e.stack);
             captureException(e);

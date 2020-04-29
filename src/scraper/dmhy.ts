@@ -242,6 +242,8 @@ export class DmhyScraper extends BaseScraper<number> {
         } catch (e) {
             if (e.response) {
                 statusCode = e.response.status;
+            } else {
+                statusCode = -1;
             }
             captureException(e);
             console.error(e.stack);
