@@ -161,7 +161,7 @@ export class DmhyScraper extends BaseScraper<number> {
     public async executeSubTask(item: Item<number>): Promise<number> {
         const page = await this._browser.newPage();
         let statusCode = -1;
-        const bodyStr = null;
+        let bodyStr = null;
         try {
             await page.setRequestInterception(true);
             this.blockResources(page);
