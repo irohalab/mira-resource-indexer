@@ -171,7 +171,7 @@ export class DmhyScraper extends BaseScraper<number> {
             });
             statusCode = response.status();
             bodyStr = await response.text();
-            let mainArea = await page.$('.main > .topics_bk');
+            let mainArea = await page.$('.main .topics_bk');
 
             item.title = await page.evaluate(el => {
                 const h3El = el.querySelector('.topic-main > .topic-title > h3');
