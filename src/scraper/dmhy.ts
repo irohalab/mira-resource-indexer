@@ -161,6 +161,7 @@ export class DmhyScraper extends BaseScraper<number> {
     public async executeSubTask(item: Item<number>): Promise<number> {
         const page = await this._browser.newPage();
         let statusCode = -1;
+        let bodyStr = null;
         try {
             await page.setRequestInterception(true);
             this.blockResources(page);
@@ -169,6 +170,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 waitUntil: 'domcontentloaded'
             });
             statusCode = response.status();
+            bodyStr = await response.text();
             let mainArea = await page.$('.main > .topics_bk');
 
             item.title = await page.evaluate(el => {
@@ -240,6 +242,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 item.files.push(mediaFile);
             }
         } catch (e) {
+            console.info(bodyStr);
             if (e.response) {
                 statusCode = e.response.status;
             } else {
