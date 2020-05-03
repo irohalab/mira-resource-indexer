@@ -15,20 +15,22 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { MongoClient, Db } from 'mongodb';
+import { Db } from 'mongodb';
 import { Item } from '../entity/Item';
-import { ConfigLoader, PersistentStorage, TYPES } from '../types';
+import { DatabaseService } from '../service/database-service';
+import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { escapeRegExp } from '../utils/normalize';
 
 @injectable()
-export class MongodbStore<T> implements PersistentStorage<T> {
+export class MongodbItemStore<T> implements ItemStorage<T> {
 
     private _db: Db;
-    private _client: MongoClient;
 
     private _collectionName: string = 'items';
 
-    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
+                private _databaseService: DatabaseService) {
+        this._db = this._databaseService.db;
     }
 
     public deleteItem(id: T): Promise<boolean> {
@@ -72,18 +74,5 @@ export class MongodbStore<T> implements PersistentStorage<T> {
             }
         }).sort({ timestamp: -1 }).limit(this._config.maxSearchCount);
         return Promise.resolve(cursor.toArray());
-    }
-
-    public async onEnd(): Promise<void> {
-        await this._client.close();
-    }
-
-    public async onStart(): Promise<void> {
-        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
-            this._config.dbHost
-            }:${this._config.dbPort}?authSource=${this._config.authSource}`;
-        this._client = await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
-        this._db = this._client.db(this._config.dbName);
-        return Promise.resolve();
     }
 }

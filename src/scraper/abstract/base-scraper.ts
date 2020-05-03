@@ -20,7 +20,7 @@ import { MainTask } from '../../task/main-task';
 import { SubTask } from '../../task/sub-task';
 import { TaskOrchestra } from '../../task/task-orchestra';
 import { Task, TaskType } from '../../task/task-types';
-import { ConfigLoader, PersistentStorage, Scraper } from '../../types';
+import { ConfigLoader, ItemStorage, Scraper } from '../../types';
 import { captureMessage } from '../../utils/sentry';
 
 const MAX_TASK_RETRIED_TIMES = 10;
@@ -32,7 +32,7 @@ export abstract class BaseScraper<T> implements Scraper {
 
     protected constructor(protected _taskOrchestra: TaskOrchestra,
                           protected _config: ConfigLoader,
-                          protected _store: PersistentStorage<T>) {
+                          protected _store: ItemStorage<T>) {
         this.className = this.constructor.name;
     }
 

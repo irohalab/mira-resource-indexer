@@ -23,7 +23,7 @@ import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, PersistentStorage, TYPES } from '../types';
+import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 
@@ -31,7 +31,7 @@ import { BaseScraper } from './abstract/base-scraper';
 export class BangumiMoe extends BaseScraper<string> {
     private static _host = 'https://bangumi.moe';
 
-    constructor(@inject(TYPES.PersistentStorage) store: PersistentStorage<string>,
+    constructor(@inject(TYPES.ItemStorage) store: ItemStorage<string>,
                 @inject(TYPES.ConfigLoader) config: ConfigLoader,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra) {
         super(taskOrchestra, config, store);

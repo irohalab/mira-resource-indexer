@@ -24,11 +24,14 @@ export enum TaskType {
 export interface Task {
     id: number;
     type: TaskType;
+    timestamp: number;
 }
 
 export class CommonTask implements Task {
     public id: number;
+    public timestamp: number;
     constructor(public type: TaskType) {
         this.id = taskCount++;
+        this.timestamp = Date.now();
     }
 }

@@ -19,20 +19,30 @@ import { Task } from './task/task-types';
 
 export const TYPES = {
     ConfigLoader: Symbol.for('ConfigLoader'),
-    PersistentStorage: Symbol.for('PersistentStorage'),
+    ItemStorage: Symbol.for('ItemStorage'),
     Scraper: Symbol.for('Scraper'),
+    TaskStorage: Symbol.for('TaskStorage'),
     TaskTimingFactory: Symbol.for('TaskTiming')
 };
 
-export interface PersistentStorage<T> {
-    onStart(): Promise<void>;
-    onEnd(): Promise<void>;
+export interface ItemStorage<T> {
     deleteItem(id: T): Promise<boolean>;
     getItem(id: T): Promise<Item<T>|null>;
     hasItem(id: T): Promise<boolean>;
     filterItemNotStored(ids: T[]): Promise<T[]>;
     putItem(item: Item<T>): Promise<boolean>;
     searchItem(keyword: string): Promise<Array<Item<T>>>;
+}
+
+export interface TaskStorage {
+    enqueueTask(task: Task): Promise<boolean>;
+    getTask(task: Task): Promise<Task>;
+    enqueueFailedTask(task: Task): Promise<boolean>;
+    getFailedTask(task: Task): Promise<Task>;
+    cleanTask(): Promise<boolean>;
+    cleanFailedTask(): Promise<boolean>;
+    hasTask(): Promise<boolean>;
+    hasFailedTask(): Promise<boolean>;
 }
 
 export interface Scraper {

@@ -24,7 +24,7 @@ import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, PersistentStorage, TYPES } from '../types';
+import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { toUTCDate, trimDomain } from '../utils/normalize';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
@@ -73,7 +73,7 @@ export class DmhyScraper extends BaseScraper<number> {
     private static _host = 'https://share.dmhy.org';
     private _browser: Browser;
 
-    constructor(@inject(TYPES.PersistentStorage) store: PersistentStorage<number>,
+    constructor(@inject(TYPES.ItemStorage) store: ItemStorage<number>,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
                 @inject(TYPES.ConfigLoader) config: ConfigLoader) {
         super(taskOrchestra, config, store);
