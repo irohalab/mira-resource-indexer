@@ -16,6 +16,7 @@
 
 import { inject, injectable } from 'inversify';
 import { TaskOrchestra } from '../task/task-orchestra';
+import { TaskStatus } from '../task/task-status';
 import { Task, TaskType } from '../task/task-types';
 import { Scraper } from '../types';
 import { FakeTask } from './fake-task';
@@ -42,20 +43,21 @@ export class FakeScraper implements Scraper {
         return Promise.resolve(null);
     }
 
-    public executeTask(task: Task): Promise<any> {
+    public async executeTask(task: Task): Promise<TaskStatus> {
         if (task.type === TaskType.SUB) {
-            return this.doExecuteSubTask((task as FakeTask).payload);
+            await this.doExecuteSubTask((task as FakeTask).payload);
         } else {
             if (task instanceof FakeTask) {
-                return this.doExecuteMainTask(task.pageNo);
+                await this.doExecuteMainTask(task.pageNo);
             } else {
-                return this.doExecuteMainTask(1);
+                await this.doExecuteMainTask(1);
             }
         }
+        return TaskStatus.Success;
     }
 
-    public start(): Promise<any> {
-        this._taskOrchestra.queue(new FakeTask(TaskType.MAIN));
+    public async start(): Promise<any> {
+        await this._taskOrchestra.queue(new FakeTask(TaskType.MAIN));
         this._taskOrchestra.start(this);
         return Promise.resolve(null);
     }
@@ -67,12 +69,12 @@ export class FakeScraper implements Scraper {
     private async doExecuteMainTask(page: number): Promise<any> {
         let ids = this.resources[page - 1].ids;
         for (let id of ids) {
-            this._taskOrchestra.queue(new FakeTask(TaskType.SUB, id));
+            await this._taskOrchestra.queue(new FakeTask(TaskType.SUB, id));
         }
         if (this.resources.length > page - 1) {
             let newMainTask = new FakeTask(TaskType.MAIN);
             newMainTask.pageNo = page + 1;
-            this._taskOrchestra.queue(newMainTask);
+            await this._taskOrchestra.queue(newMainTask);
         }
     }
 }

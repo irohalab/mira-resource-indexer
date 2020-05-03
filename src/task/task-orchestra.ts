@@ -22,7 +22,6 @@ import Timeout = NodeJS.Timeout;
 
 @injectable()
 export class TaskOrchestra {
-    private _taskQueue: Task[];
     private _timerId: Timeout;
     private _lastMainTaskExeTime  = 0;
     private _scraper: Scraper;
@@ -30,7 +29,6 @@ export class TaskOrchestra {
     constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
                 @inject(TYPES.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number,
                 @inject(TYPES.TaskStorage) private _taskStore: TaskStorage) {
-        this._taskQueue = [];
     }
 
     public start(scraper: Scraper) {
@@ -42,7 +40,7 @@ export class TaskOrchestra {
         await this._taskStore.enqueueTask(task);
     }
 
-    public async stop() {
+    public stop() {
         clearTimeout(this._timerId);
     }
 
@@ -72,28 +70,6 @@ export class TaskOrchestra {
                         });
                 }
             });
-        if (this._taskQueue.length === 0) {
-            // no task in the queue. schedule a new task.
-            this.queue(new CommonTask(TaskType.MAIN))
-                .then(() => {
-                    let offset = Date.now() - this._lastMainTaskExeTime;
-                    this._timerId = setTimeout(() => {
-                        this.pick();
-                    }, Math.max(this._config.minCheckInterval - offset, actualInterval));
-                });
-        } else {
-            // execute task from head of the queue
-            let task = this._taskQueue.shift();
-            this._scraper.executeTask(task)
-                .then(() => {
-                    if (task.type === TaskType.MAIN) {
-                        this._lastMainTaskExeTime = Date.now();
-                    }
-                    this._timerId = setTimeout(() => {
-                        this.pick();
-                    }, actualInterval);
-                });
-        }
     }
 
     /**

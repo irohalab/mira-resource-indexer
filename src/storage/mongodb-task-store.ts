@@ -48,6 +48,7 @@ export class MongodbTaskStore implements TaskStorage {
     }
 
     public enqueueFailedTask(task: Task): Promise<boolean> {
+        task.retryCount = task.retryCount ? task.retryCount++ : 1;
         return this.push(this._failedTaskCollectionName, task);
     }
 

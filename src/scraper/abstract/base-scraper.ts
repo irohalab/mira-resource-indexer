@@ -22,9 +22,6 @@ import { TaskOrchestra } from '../../task/task-orchestra';
 import { TaskStatus } from '../../task/task-status';
 import { Task, TaskType } from '../../task/task-types';
 import { ConfigLoader, ItemStorage, Scraper } from '../../types';
-import { captureMessage } from '../../utils/sentry';
-
-const MAX_TASK_RETRIED_TIMES = 10;
 
 @injectable()
 export abstract class BaseScraper<T> implements Scraper {
@@ -78,39 +75,11 @@ export abstract class BaseScraper<T> implements Scraper {
     }
 
     public async start(): Promise<any> {
-        this._taskOrchestra.queue(new MainTask(TaskType.MAIN));
+        await this._taskOrchestra.queue(new MainTask(TaskType.MAIN));
         this._taskOrchestra.start(this);
     }
 
     public async end(): Promise<any> {
         this._taskOrchestra.stop();
-        this._taskRetriedTimes.clear();
-    }
-
-    private checkMaxRetriedTime(task: Task): boolean {
-        if (this._taskRetriedTimes.has(task.id)) {
-            if (this._taskRetriedTimes.get(task.id) > MAX_TASK_RETRIED_TIMES) {
-                return true;
-            }
-            this._taskRetriedTimes.set(task.id, this._taskRetriedTimes.get(task.id) + 1);
-        } else {
-            this._taskRetriedTimes.set(task.id, 1);
-        }
-        return false;
-    }
-
-    private retryTask(task: Task): void {
-        // retry this task
-        if (this.checkMaxRetriedTime(task)) {
-            if (task instanceof MainTask && task.type === TaskType.MAIN) {
-                captureMessage(`${this.className}, maximum retries reached, Main Task (${task.pageNo})`);
-            } else if (task instanceof SubTask && task.type === TaskType.SUB) {
-                captureMessage(`${this.className}, maximum retries reached, Sub Task (${JSON.stringify(task.item)})`);
-            } else {
-                captureMessage(`${this.className}, maximum retries reached, Common Task`);
-            }
-            return;
-        }
-        this._taskOrchestra.queue(task);
     }
 }

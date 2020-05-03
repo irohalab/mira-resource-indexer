@@ -25,6 +25,8 @@ export interface Task {
     id: number;
     type: TaskType;
     timestamp: number;
+    retryCount?: number;
+    updateTime?: number;
 }
 
 export class CommonTask implements Task {
