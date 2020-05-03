@@ -29,14 +29,22 @@ export class MongodbTaskStore implements TaskStorage {
 
     constructor(private _databaseService: DatabaseService) {
         this._db = this._databaseService.db;
+        if (this._databaseService.isStarted) {
+            this.createIndexIfNotExist()
+                .then(() => {
+                    console.log('index created');
+                });
+        } else {
+            this._databaseService.addOnStartCallback(this, this.createIndexIfNotExist);
+        }
     }
 
-    public getFailedTask(): Promise<Task> {
-        return this.peek(this._failedTaskCollectionName);
+    public popFailedTask(): Promise<Task> {
+        return this.pop(this._failedTaskCollectionName);
     }
 
-    public getTask(): Promise<Task> {
-        return this.peek(this._taskCollectionName);
+    public popTask(): Promise<Task> {
+        return this.pop(this._taskCollectionName);
     }
 
     public enqueueFailedTask(task: Task): Promise<boolean> {
@@ -45,14 +53,6 @@ export class MongodbTaskStore implements TaskStorage {
 
     public enqueueTask(task: Task): Promise<boolean> {
         return this.push(this._taskCollectionName, task);
-    }
-
-    public cleanFailedTask(): Promise<boolean> {
-        return this.clean(this._failedTaskCollectionName);
-    }
-
-    public cleanTask(): Promise<boolean> {
-        return this.clean(this._taskCollectionName);
     }
 
     public async hasTask(): Promise<boolean> {
@@ -66,17 +66,29 @@ export class MongodbTaskStore implements TaskStorage {
     }
 
     private async push(collection: string, task: Task): Promise<boolean> {
-        await this._db.collection(collection).insertOne(Object.assign({ack: false}, task));
+        await this._db.collection(collection).insertOne(Object.assign({updateTime: Date.now()}, task));
         return Promise.resolve(true);
     }
 
-    private async peek(collection: string): Promise<Task> {
-        const cursor = await this._db.collection(collection).findOneAndUpdate({ack: false}, {$set: {ack: true}});
+    private async pop(collection: string): Promise<Task> {
+        const cursor = await this._db.collection(collection).findOneAndDelete({
+            updateTime: {
+                $lte: Date.now()
+            }
+        }, {
+            sort: {
+                updateTime: 1
+            }
+        });
         return cursor.value;
     }
 
-    private async clean(collection: string): Promise<boolean> {
-        await this._db.collection(collection).deleteMany({ack: true});
-        return true;
+    private async createIndexIfNotExist(): Promise<void> {
+        if (await this._db.collection(this._taskCollectionName).indexExists('updateTime')) {
+            await this._db.collection(this._taskCollectionName).createIndex('updateTime');
+        }
+        if (await this._db.collection(this._failedTaskCollectionName).indexExists('updateTime')) {
+            await this._db.collection(this._failedTaskCollectionName).createIndex('updateTime');
+        }
     }
 }

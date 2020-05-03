@@ -15,7 +15,8 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { ConfigLoader, Scraper, TYPES } from '../types';
+import { ConfigLoader, Scraper, TaskStorage, TYPES } from '../types';
+import { TaskStatus } from './task-status';
 import { CommonTask, Task, TaskType } from './task-types';
 import Timeout = NodeJS.Timeout;
 
@@ -27,7 +28,8 @@ export class TaskOrchestra {
     private _scraper: Scraper;
 
     constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
-                @inject(TYPES.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number) {
+                @inject(TYPES.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number,
+                @inject(TYPES.TaskStorage) private _taskStore: TaskStorage) {
         this._taskQueue = [];
     }
 
@@ -36,24 +38,49 @@ export class TaskOrchestra {
         this.pick();
     }
 
-    public queue(task: Task) {
-        this._taskQueue.push(task);
+    public async queue(task: Task): Promise<void> {
+        await this._taskStore.enqueueTask(task);
     }
 
-    public stop() {
+    public async stop() {
         clearTimeout(this._timerId);
-        this.cleanTaskQueue();
     }
 
     private pick(): void {
         let actualInterval = this._taskTimingFactory(this._config.minInterval);
+        this.pickTask()
+            .then((hasTask) => {
+                /* if task queue is empty, try failed task */
+                if (!hasTask) {
+                    return this.pickFailedTask();
+                }
+                return true;
+            })
+            .then((hasSomeTaskExecuted) => {
+                /* Either task or failed task has been executed, we will try to pick again */
+                if (hasSomeTaskExecuted) {
+                    this._timerId = setTimeout(() => {
+                        this.pick();
+                    }, actualInterval);
+                } else {
+                    this.queue(new CommonTask(TaskType.MAIN))
+                        .then(() => {
+                            let offset = Date.now() - this._lastMainTaskExeTime;
+                            this._timerId = setTimeout(() => {
+                                this.pick();
+                            }, Math.max(this._config.minCheckInterval - offset, actualInterval));
+                        });
+                }
+            });
         if (this._taskQueue.length === 0) {
             // no task in the queue. schedule a new task.
-            this.queue(new CommonTask(TaskType.MAIN));
-            let offset = Date.now() - this._lastMainTaskExeTime;
-            this._timerId = setTimeout(() => {
-                this.pick();
-            }, Math.max(this._config.minCheckInterval - offset, actualInterval));
+            this.queue(new CommonTask(TaskType.MAIN))
+                .then(() => {
+                    let offset = Date.now() - this._lastMainTaskExeTime;
+                    this._timerId = setTimeout(() => {
+                        this.pick();
+                    }, Math.max(this._config.minCheckInterval - offset, actualInterval));
+                });
         } else {
             // execute task from head of the queue
             let task = this._taskQueue.shift();
@@ -69,7 +96,37 @@ export class TaskOrchestra {
         }
     }
 
-    private cleanTaskQueue() {
-        this._taskQueue.length = 0;
+    /**
+     * Pick a task from task queue
+     * @returns {Promise<boolean>} true if a task is picked, false if the task queue is empty.
+     */
+    private async pickTask(): Promise<boolean> {
+        if (await this._taskStore.hasTask()) {
+            let task = await this._taskStore.popTask();
+            let result = await this._scraper.executeTask(task);
+            if (result === TaskStatus.NeedRetry) {
+                await this._taskStore.enqueueFailedTask(task);
+            } else if (result === TaskStatus.Success && task.type === TaskType.MAIN) {
+                this._lastMainTaskExeTime = Date.now();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Pick a failed task from failed task queue
+     * @returns {Promise<boolean>} true if a failed task is picked, false if the failed task queue is empty.
+     */
+    private async pickFailedTask(): Promise<boolean> {
+        if (await this._taskStore.hasFailedTask()) {
+            let task = await this._taskStore.popFailedTask();
+            let result = await this._scraper.executeTask(task);
+            if (result === TaskStatus.NeedRetry) {
+                await this._taskStore.enqueueFailedTask(task);
+            }
+            return true;
+        }
+        return false;
     }
 }

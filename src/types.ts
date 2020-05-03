@@ -15,6 +15,7 @@
  */
 
 import { Item } from './entity/Item';
+import { TaskStatus } from './task/task-status';
 import { Task } from './task/task-types';
 
 export const TYPES = {
@@ -36,11 +37,9 @@ export interface ItemStorage<T> {
 
 export interface TaskStorage {
     enqueueTask(task: Task): Promise<boolean>;
-    getTask(task: Task): Promise<Task>;
+    popTask(): Promise<Task>;
     enqueueFailedTask(task: Task): Promise<boolean>;
-    getFailedTask(task: Task): Promise<Task>;
-    cleanTask(): Promise<boolean>;
-    cleanFailedTask(): Promise<boolean>;
+    popFailedTask(): Promise<Task>;
     hasTask(): Promise<boolean>;
     hasFailedTask(): Promise<boolean>;
 }
@@ -48,7 +47,13 @@ export interface TaskStorage {
 export interface Scraper {
     start(): Promise<any>;
     end(): Promise<any>;
-    executeTask(task: Task): Promise<any>;
+
+    /**
+     * Execute the task.
+     * @param {Task} task
+     * @returns {Promise<boolean>} true, the
+     */
+    executeTask(task: Task): Promise<TaskStatus>;
 }
 
 export interface ConfigLoader {

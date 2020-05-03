@@ -76,11 +76,10 @@ export class MongodbItemStoreSpec {
         await Promise.all(promises);
         let idx = 0;
         while (await this._store.hasTask()) {
-            let task = await this._store.getTask();
+            let task = await this._store.popTask();
             Expect(task.id).toBe(tasks[idx].id);
             let sleepTime = Math.round(Math.random() * 5000);
             await this.sleep(sleepTime);
-            await this._store.cleanTask();
             idx++;
         }
         Expect(await this._store.hasTask()).toBe(false);
@@ -103,11 +102,10 @@ export class MongodbItemStoreSpec {
         await Promise.all(promises);
         let idx = 0;
         while (await this._store.hasFailedTask()) {
-            let task = await this._store.getFailedTask();
+            let task = await this._store.popFailedTask();
             Expect(task.id).toBe(tasks[idx].id);
             let sleepTime = Math.round(Math.random() * 5000);
             await this.sleep(sleepTime);
-            await this._store.cleanFailedTask();
             idx++;
         }
         Expect(await this._store.hasFailedTask()).toBe(false);

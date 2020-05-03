@@ -19,6 +19,7 @@ import { Item } from '../../entity/Item';
 import { MainTask } from '../../task/main-task';
 import { SubTask } from '../../task/sub-task';
 import { TaskOrchestra } from '../../task/task-orchestra';
+import { TaskStatus } from '../../task/task-status';
 import { Task, TaskType } from '../../task/task-types';
 import { ConfigLoader, ItemStorage, Scraper } from '../../types';
 import { captureMessage } from '../../utils/sentry';
@@ -38,7 +39,7 @@ export abstract class BaseScraper<T> implements Scraper {
 
     public abstract executeMainTask(pageNo?: number): Promise<{items: Array<Item<T>>, hasNext: boolean}>;
     public abstract executeSubTask(item: Item<T>): Promise<number>;
-    public async executeTask(task: Task): Promise<any> {
+    public async executeTask(task: Task): Promise<TaskStatus> {
         if (task.type === TaskType.MAIN) {
             let result;
             if (task instanceof MainTask) {
@@ -47,13 +48,10 @@ export abstract class BaseScraper<T> implements Scraper {
                 result = await this.executeMainTask();
             }
             if (!result) {
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
+                return TaskStatus.NeedRetry;
             }
             for (let item of result.items) {
-                this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
+                await this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
             }
             if (result.hasNext && (task as MainTask).pageNo < this._config.maxPageNo) {
                 let newTask = new MainTask(TaskType.MAIN);
@@ -63,23 +61,19 @@ export abstract class BaseScraper<T> implements Scraper {
                 } else {
                     newTask.pageNo = 2;
                 }
-                this._taskOrchestra.queue(newTask);
+                await this._taskOrchestra.queue(newTask);
             }
+            return TaskStatus.Success;
         } else {
             let item = (task as SubTask<T>).item;
             let httpStatusCode = await this.executeSubTask(item);
             if (httpStatusCode === 200) {
-                if (this._taskRetriedTimes.has(task.id)) {
-                    this._taskRetriedTimes.delete(task.id);
-                }
-                return await this._store.putItem(item);
+                await this._store.putItem(item);
+                return TaskStatus.Success;
             } else if (httpStatusCode !== 404) {
-                this.retryTask(task);
-                return;
+                return TaskStatus.NeedRetry;
             }
-            if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
+            return TaskStatus.Fail;
         }
     }
 
