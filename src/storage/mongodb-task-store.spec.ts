@@ -34,7 +34,6 @@ export class MongodbItemStoreSpec {
     private _taskCollectionName = 'task';
     private _failedTaskCollectionName = 'failed_task';
 
-
     @SetupFixture
     public setupFixture() {
         if (!process.env.DB_NAME) {
