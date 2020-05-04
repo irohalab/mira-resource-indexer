@@ -55,6 +55,17 @@ export class TaskOrchestra {
                 return true;
             })
             .then((hasSomeTaskExecuted) => {
+                /* Need to ensure the list page is checked regularly */
+                if (Date.now() - this._lastMainTaskExeTime > this._config.minCheckInterval) {
+                    // force queue a MainTask
+                    this.queue(new CommonTask(TaskType.MAIN))
+                        .then(() => {
+                            this._timerId = setTimeout(() => {
+                                this.pick();
+                            }, actualInterval);
+                        });
+                    return;
+                }
                 /* Either task or failed task has been executed, we will try to pick again */
                 if (hasSomeTaskExecuted) {
                     this._timerId = setTimeout(() => {
