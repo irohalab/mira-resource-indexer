@@ -18,8 +18,9 @@ import { Expect, Setup, SetupFixture, Teardown, Test, TestFixture } from 'alsati
 import { Container, interfaces } from 'inversify';
 import { FakeConfigManager } from '../test/fake-config';
 import { FakeResource, FakeScraper, MIN_INTERVAL } from '../test/fake-scraper';
+import { InMemoryTaskStore } from '../test/in-memory-task-store';
 import { MockTaskTiming } from '../test/mock-task-timing';
-import { ConfigLoader, Scraper, TYPES } from '../types';
+import { ConfigLoader, Scraper, TaskStorage, TYPES } from '../types';
 import { TaskOrchestra } from './task-orchestra';
 
 @TestFixture('TaskOrchestra test spec')
@@ -33,6 +34,7 @@ export class TaskOrchestraSpec {
         this._container = new Container();
         this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
         this._container.bind<interfaces.Factory<number>>(TYPES.TaskTimingFactory).toFactory<number>(MockTaskTiming);
+        this._container.bind<TaskStorage>(TYPES.TaskStorage).to(InMemoryTaskStore).inSingletonScope();
         this._container.bind<TaskOrchestra>(TaskOrchestra).toSelf();
         this._container.bind<Scraper>(TYPES.Scraper).to(FakeScraper).inTransientScope();
         this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
@@ -48,12 +50,16 @@ export class TaskOrchestraSpec {
         let fakeResources: FakeResource[] = [];
         for (let i = 1; i <= 5; i++) {
             let res = {
-                ids: [],
-                page: i
+                page: i,
+                subResources: []
             } as FakeResource;
 
             for (let j = 1; j <= 10; j++) {
-                res.ids.push(i * 100 + j);
+                res.subResources.push({
+                    id: i * 100 + j,
+                    retryCount: Math.round(Math.random() * 5),
+                    will_success: !!Math.round(Math.random() * 1)
+                });
             }
             fakeResources.push(res);
         }

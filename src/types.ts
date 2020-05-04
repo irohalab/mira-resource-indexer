@@ -36,10 +36,10 @@ export interface ItemStorage<T> {
 }
 
 export interface TaskStorage {
-    enqueueTask(task: Task): Promise<boolean>;
-    popTask(): Promise<Task>;
-    enqueueFailedTask(task: Task): Promise<boolean>;
-    popFailedTask(): Promise<Task>;
+    offerTask(task: Task): Promise<boolean>;
+    pollTask(): Promise<Task>;
+    offerFailedTask(task: Task): Promise<boolean>;
+    pollFailedTask(): Promise<Task>;
     hasTask(): Promise<boolean>;
     hasFailedTask(): Promise<boolean>;
 }

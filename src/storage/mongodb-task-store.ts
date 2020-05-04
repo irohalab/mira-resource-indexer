@@ -29,30 +29,22 @@ export class MongodbTaskStore implements TaskStorage {
 
     constructor(private _databaseService: DatabaseService) {
         this._db = this._databaseService.db;
-        if (this._databaseService.isStarted) {
-            this.createIndexIfNotExist()
-                .then(() => {
-                    console.log('index created');
-                });
-        } else {
-            this._databaseService.addOnStartCallback(this, this.createIndexIfNotExist);
-        }
     }
 
-    public popFailedTask(): Promise<Task> {
+    public pollFailedTask(): Promise<Task> {
         return this.pop(this._failedTaskCollectionName);
     }
 
-    public popTask(): Promise<Task> {
+    public pollTask(): Promise<Task> {
         return this.pop(this._taskCollectionName);
     }
 
-    public enqueueFailedTask(task: Task): Promise<boolean> {
+    public offerFailedTask(task: Task): Promise<boolean> {
         task.retryCount = task.retryCount ? task.retryCount++ : 1;
         return this.push(this._failedTaskCollectionName, task);
     }
 
-    public enqueueTask(task: Task): Promise<boolean> {
+    public offerTask(task: Task): Promise<boolean> {
         return this.push(this._taskCollectionName, task);
     }
 
@@ -82,14 +74,5 @@ export class MongodbTaskStore implements TaskStorage {
             }
         });
         return cursor.value;
-    }
-
-    private async createIndexIfNotExist(): Promise<void> {
-        if (await this._db.collection(this._taskCollectionName).indexExists('updateTime')) {
-            await this._db.collection(this._taskCollectionName).createIndex('updateTime');
-        }
-        if (await this._db.collection(this._failedTaskCollectionName).indexExists('updateTime')) {
-            await this._db.collection(this._failedTaskCollectionName).createIndex('updateTime');
-        }
     }
 }

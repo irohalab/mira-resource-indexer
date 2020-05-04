@@ -37,7 +37,7 @@ export class TaskOrchestra {
     }
 
     public async queue(task: Task): Promise<void> {
-        await this._taskStore.enqueueTask(task);
+        await this._taskStore.offerTask(task);
     }
 
     public stop() {
@@ -78,10 +78,10 @@ export class TaskOrchestra {
      */
     private async pickTask(): Promise<boolean> {
         if (await this._taskStore.hasTask()) {
-            let task = await this._taskStore.popTask();
+            let task = await this._taskStore.pollTask();
             let result = await this._scraper.executeTask(task);
             if (result === TaskStatus.NeedRetry) {
-                await this._taskStore.enqueueFailedTask(task);
+                await this._taskStore.offerFailedTask(task);
             } else if (result === TaskStatus.Success && task.type === TaskType.MAIN) {
                 this._lastMainTaskExeTime = Date.now();
             }
@@ -96,10 +96,10 @@ export class TaskOrchestra {
      */
     private async pickFailedTask(): Promise<boolean> {
         if (await this._taskStore.hasFailedTask()) {
-            let task = await this._taskStore.popFailedTask();
+            let task = await this._taskStore.pollFailedTask();
             let result = await this._scraper.executeTask(task);
             if (result === TaskStatus.NeedRetry) {
-                await this._taskStore.enqueueFailedTask(task);
+                await this._taskStore.offerFailedTask(task);
             }
             return true;
         }

@@ -71,12 +71,12 @@ export class MongodbItemStoreSpec {
 
         const promises = [];
         for (let task of tasks) {
-            promises.push(this._store.enqueueTask(task));
+            promises.push(this._store.offerTask(task));
         }
         await Promise.all(promises);
         let idx = 0;
         while (await this._store.hasTask()) {
-            let task = await this._store.popTask();
+            let task = await this._store.pollTask();
             Expect(task.id).toBe(tasks[idx].id);
             let sleepTime = Math.round(Math.random() * 5000);
             await this.sleep(sleepTime);
@@ -97,13 +97,14 @@ export class MongodbItemStoreSpec {
 
         const promises = [];
         for (let task of tasks) {
-            promises.push(this._store.enqueueFailedTask(task));
+            promises.push(this._store.offerFailedTask(task));
         }
         await Promise.all(promises);
         let idx = 0;
         while (await this._store.hasFailedTask()) {
-            let task = await this._store.popFailedTask();
+            let task = await this._store.pollFailedTask();
             Expect(task.id).toBe(tasks[idx].id);
+            Expect(task.retryCount).toBeGreaterThan(0);
             let sleepTime = Math.round(Math.random() * 5000);
             await this.sleep(sleepTime);
             idx++;

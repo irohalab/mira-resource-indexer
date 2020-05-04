@@ -25,7 +25,13 @@ export const MIN_INTERVAL = 10;
 
 export interface FakeResource {
     page: number;
-    ids: number[];
+    subResources: FakeSubResource[];
+}
+
+export interface FakeSubResource {
+    id: number;
+    will_success: boolean;
+    retryCount: number;
 }
 
 @injectable()
@@ -45,15 +51,15 @@ export class FakeScraper implements Scraper {
 
     public async executeTask(task: Task): Promise<TaskStatus> {
         if (task.type === TaskType.SUB) {
-            await this.doExecuteSubTask((task as FakeTask).payload);
+            return await this.doExecuteSubTask(task as FakeTask);
         } else {
             if (task instanceof FakeTask) {
                 await this.doExecuteMainTask(task.pageNo);
             } else {
                 await this.doExecuteMainTask(1);
             }
+            return TaskStatus.Success;
         }
-        return TaskStatus.Success;
     }
 
     public async start(): Promise<any> {
@@ -62,14 +68,22 @@ export class FakeScraper implements Scraper {
         return Promise.resolve(null);
     }
 
-    private async doExecuteSubTask(payload: any): Promise<any> {
-        this.resolvedIds.push({id: payload as number, timestamp: Date.now()});
+    private async doExecuteSubTask(task: FakeTask): Promise<TaskStatus> {
+        let payload = task.payload as FakeSubResource;
+        if (payload.will_success) {
+            this.resolvedIds.push({id: payload.id, timestamp: Date.now()});
+            return TaskStatus.Success;
+        } else if (payload.retryCount === 0) {
+            return TaskStatus.Fail;
+        } else {
+            return TaskStatus.NeedRetry;
+        }
     }
 
     private async doExecuteMainTask(page: number): Promise<any> {
-        let ids = this.resources[page - 1].ids;
-        for (let id of ids) {
-            await this._taskOrchestra.queue(new FakeTask(TaskType.SUB, id));
+        let subResources = this.resources[page - 1].subResources;
+        for (let subResource of subResources) {
+            await this._taskOrchestra.queue(new FakeTask(TaskType.SUB, subResource));
         }
         if (this.resources.length > page - 1) {
             let newMainTask = new FakeTask(TaskType.MAIN);

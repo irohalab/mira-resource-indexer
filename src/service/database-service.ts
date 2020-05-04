@@ -18,17 +18,14 @@ import { inject, injectable } from 'inversify';
 import { Db, MongoClient } from 'mongodb';
 import { ConfigLoader, TYPES } from '../types';
 
-type Func = () => void;
-
 @injectable()
 export class DatabaseService {
 
     private _db: Db;
     private _client: MongoClient;
-    private onStartCallbacks: Array<{callback: Func, context: any}>;
 
     public get isStarted(): boolean {
-        return this._client.isConnected();
+        return this._client && this._client.isConnected();
     }
 
     public get db(): Db {
@@ -36,16 +33,10 @@ export class DatabaseService {
     }
 
     constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
-        this.onStartCallbacks = [];
     }
 
     public async onEnd(): Promise<void> {
         await this._client.close();
-        for (let i = 0; i < this.onStartCallbacks.length; i++) {
-            this.onStartCallbacks[i].context = null;
-            this.onStartCallbacks[i].callback = null;
-            this.onStartCallbacks[i] = null;
-        }
     }
 
     public async onStart(): Promise<void> {
@@ -57,16 +48,6 @@ export class DatabaseService {
             }:${this._config.dbPort}?authSource=${this._config.authSource}`;
         this._client = await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
         this._db = this._client.db(this._config.dbName);
-        for (let callbackWrapper of this.onStartCallbacks) {
-            callbackWrapper.callback.call(callbackWrapper.context);
-        }
         return Promise.resolve();
-    }
-
-    public addOnStartCallback(context: any, callback: () => void) {
-        this.onStartCallbacks.push({
-            callback,
-            context
-        });
     }
 }

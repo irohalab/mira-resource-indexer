@@ -20,7 +20,7 @@ import { Item } from '../entity/Item';
 import { ItemStorage } from '../types';
 
 @injectable()
-export class InMemoryStore<T> implements ItemStorage<T> {
+export class InMemoryItemStore<T> implements ItemStorage<T> {
     private _itemTable = new Map<T, Item<T>>();
     public deleteItem(id: T): Promise<boolean> {
         this._itemTable.delete(id);
