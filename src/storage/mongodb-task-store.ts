@@ -33,8 +33,10 @@ export class MongodbTaskStore implements TaskStorage {
     constructor(private _databaseService: DatabaseService) {
     }
 
-    public pollFailedTask(): Promise<Task> {
-        return this.poll(this._failedTaskCollectionName);
+    public async pollFailedTask(): Promise<Task> {
+        let task = await this.poll(this._failedTaskCollectionName);
+        task.retryCount = task.retryCount ? task.retryCount++ : 1;
+        return task;
     }
 
     public pollTask(): Promise<Task> {
@@ -42,7 +44,6 @@ export class MongodbTaskStore implements TaskStorage {
     }
 
     public offerFailedTask(task: Task): Promise<boolean> {
-        task.retryCount = task.retryCount ? task.retryCount++ : 1;
         return this.push(this._failedTaskCollectionName, task);
     }
 
