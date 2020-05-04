@@ -30,7 +30,7 @@ export interface FakeResource {
 
 export interface FakeSubResource {
     id: number;
-    will_success: boolean;
+    willSuccess: boolean;
     retryCount: number;
 }
 
@@ -70,7 +70,7 @@ export class FakeScraper implements Scraper {
 
     private async doExecuteSubTask(task: FakeTask): Promise<TaskStatus> {
         let payload = task.payload as FakeSubResource;
-        if (payload.will_success) {
+        if (payload.willSuccess) {
             this.resolvedIds.push({id: payload.id, timestamp: Date.now()});
             return TaskStatus.Success;
         } else if (payload.retryCount === 0) {

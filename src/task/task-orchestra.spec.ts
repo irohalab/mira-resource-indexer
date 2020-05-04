@@ -58,7 +58,7 @@ export class TaskOrchestraSpec {
                 res.subResources.push({
                     id: i * 100 + j,
                     retryCount: Math.round(Math.random() * 5),
-                    will_success: !!Math.round(Math.random() * 1)
+                    willSuccess: !!Math.round(Math.random() * 1)
                 });
             }
             fakeResources.push(res);
