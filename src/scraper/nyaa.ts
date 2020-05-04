@@ -37,7 +37,6 @@ export class NyaaScraper extends BaseScraper<number> {
         @inject(TYPES.ConfigLoader) config: ConfigLoader
     ) {
         super(taskOrchestra, config, store);
-        this._taskRetriedTimes = new Map<number, number>();
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Array<Item<number>>, hasNext: boolean }> {

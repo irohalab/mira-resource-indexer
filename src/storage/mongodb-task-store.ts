@@ -23,20 +23,22 @@ import { TaskStorage } from '../types';
 @injectable()
 export class MongodbTaskStore implements TaskStorage {
 
-    private _db: Db;
+    private get db(): Db {
+        return this._databaseService.db;
+    }
+
     private _taskCollectionName = 'task';
     private _failedTaskCollectionName = 'failed_task';
 
     constructor(private _databaseService: DatabaseService) {
-        this._db = this._databaseService.db;
     }
 
     public pollFailedTask(): Promise<Task> {
-        return this.pop(this._failedTaskCollectionName);
+        return this.poll(this._failedTaskCollectionName);
     }
 
     public pollTask(): Promise<Task> {
-        return this.pop(this._taskCollectionName);
+        return this.poll(this._taskCollectionName);
     }
 
     public offerFailedTask(task: Task): Promise<boolean> {
@@ -49,26 +51,22 @@ export class MongodbTaskStore implements TaskStorage {
     }
 
     public async hasTask(): Promise<boolean> {
-        let count = await this._db.collection(this._taskCollectionName).estimatedDocumentCount();
-        return count === 0;
+        let count = await this.db.collection(this._taskCollectionName).estimatedDocumentCount();
+        return count > 0;
     }
 
     public async hasFailedTask(): Promise<boolean> {
-        let count = await this._db.collection(this._failedTaskCollectionName).estimatedDocumentCount();
-        return count === 0;
+        let count = await this.db.collection(this._failedTaskCollectionName).estimatedDocumentCount();
+        return count > 0;
     }
 
     private async push(collection: string, task: Task): Promise<boolean> {
-        await this._db.collection(collection).insertOne(Object.assign({updateTime: Date.now()}, task));
+        await this.db.collection(collection).insertOne(Object.assign({}, task, {updateTime: Date.now()}));
         return Promise.resolve(true);
     }
 
-    private async pop(collection: string): Promise<Task> {
-        const cursor = await this._db.collection(collection).findOneAndDelete({
-            updateTime: {
-                $lte: Date.now()
-            }
-        }, {
+    private async poll(collection: string): Promise<Task> {
+        const cursor = await this.db.collection(collection).findOneAndDelete({}, {
             sort: {
                 updateTime: 1
             }

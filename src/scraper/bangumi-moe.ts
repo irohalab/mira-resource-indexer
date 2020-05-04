@@ -35,7 +35,6 @@ export class BangumiMoe extends BaseScraper<string> {
                 @inject(TYPES.ConfigLoader) config: ConfigLoader,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra) {
         super(taskOrchestra, config, store);
-        this._taskRetriedTimes = new Map<number, number>();
     }
 
     public async executeMainTask(pageNo: number = 1): Promise<{items: Array<Item<string>>, hasNext: boolean}> {

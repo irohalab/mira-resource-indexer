@@ -24,13 +24,14 @@ import { escapeRegExp } from '../utils/normalize';
 @injectable()
 export class MongodbItemStore<T> implements ItemStorage<T> {
 
-    private _db: Db;
+    private get db(): Db {
+        return this._databaseService.db;
+    }
 
     private _collectionName: string = 'items';
 
     constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
                 private _databaseService: DatabaseService) {
-        this._db = this._databaseService.db;
     }
 
     public deleteItem(id: T): Promise<boolean> {
@@ -46,7 +47,7 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
     }
 
     public async filterItemNotStored(ids: T[]): Promise<T[]> {
-        const cursor = this._db.collection(this._collectionName).find({
+        const cursor = this.db.collection(this._collectionName).find({
             id: {
                 $in: ids
             }
@@ -57,7 +58,7 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
     }
 
     public async putItem(item: Item<T>): Promise<boolean> {
-        await this._db.collection(this._collectionName).insertOne(Object.assign({}, item));
+        await this.db.collection(this._collectionName).insertOne(Object.assign({}, item));
         return Promise.resolve(true);
     }
 
@@ -67,7 +68,7 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
             return Promise.resolve([]);
         }
         let rgx = rgxArr.map(s => escapeRegExp(s)).join('.*?');
-        const cursor = this._db.collection(this._collectionName).find({
+        const cursor = this.db.collection(this._collectionName).find({
             title: {
                 $options: 'i',
                 $regex: rgx

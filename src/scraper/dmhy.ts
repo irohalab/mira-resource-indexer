@@ -77,7 +77,6 @@ export class DmhyScraper extends BaseScraper<number> {
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
                 @inject(TYPES.ConfigLoader) config: ConfigLoader) {
         super(taskOrchestra, config, store);
-        this._taskRetriedTimes = new Map<number, number>();
     }
 
     public async start(): Promise<any> {

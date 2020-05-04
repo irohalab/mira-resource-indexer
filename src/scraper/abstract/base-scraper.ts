@@ -26,7 +26,6 @@ import { ConfigLoader, ItemStorage, Scraper } from '../../types';
 @injectable()
 export abstract class BaseScraper<T> implements Scraper {
     protected className: string;
-    protected _taskRetriedTimes: Map<number, number>;
 
     protected constructor(protected _taskOrchestra: TaskOrchestra,
                           protected _config: ConfigLoader,
