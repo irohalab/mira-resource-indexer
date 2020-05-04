@@ -17,5 +17,5 @@
 export enum TaskStatus {
     Success,
     Fail,
-    NeedRetry,
+    NeedRetry
 }
