@@ -19,26 +19,23 @@ import { Item } from '../../entity/Item';
 import { MainTask } from '../../task/main-task';
 import { SubTask } from '../../task/sub-task';
 import { TaskOrchestra } from '../../task/task-orchestra';
+import { TaskStatus } from '../../task/task-status';
 import { Task, TaskType } from '../../task/task-types';
-import { ConfigLoader, PersistentStorage, Scraper } from '../../types';
-import { captureMessage } from '../../utils/sentry';
-
-const MAX_TASK_RETRIED_TIMES = 10;
+import { ConfigLoader, ItemStorage, Scraper } from '../../types';
 
 @injectable()
 export abstract class BaseScraper<T> implements Scraper {
     protected className: string;
-    protected _taskRetriedTimes: Map<number, number>;
 
     protected constructor(protected _taskOrchestra: TaskOrchestra,
                           protected _config: ConfigLoader,
-                          protected _store: PersistentStorage<T>) {
+                          protected _store: ItemStorage<T>) {
         this.className = this.constructor.name;
     }
 
     public abstract executeMainTask(pageNo?: number): Promise<{items: Array<Item<T>>, hasNext: boolean}>;
     public abstract executeSubTask(item: Item<T>): Promise<number>;
-    public async executeTask(task: Task): Promise<any> {
+    public async executeTask(task: Task): Promise<TaskStatus> {
         if (task.type === TaskType.MAIN) {
             let result;
             if (task instanceof MainTask) {
@@ -47,13 +44,10 @@ export abstract class BaseScraper<T> implements Scraper {
                 result = await this.executeMainTask();
             }
             if (!result) {
-                this.retryTask(task);
-                return;
-            } else if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
+                return TaskStatus.NeedRetry;
             }
             for (let item of result.items) {
-                this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
+                await this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
             }
             if (result.hasNext && (task as MainTask).pageNo < this._config.maxPageNo) {
                 let newTask = new MainTask(TaskType.MAIN);
@@ -63,60 +57,28 @@ export abstract class BaseScraper<T> implements Scraper {
                 } else {
                     newTask.pageNo = 2;
                 }
-                this._taskOrchestra.queue(newTask);
+                await this._taskOrchestra.queue(newTask);
             }
+            return TaskStatus.Success;
         } else {
             let item = (task as SubTask<T>).item;
             let httpStatusCode = await this.executeSubTask(item);
             if (httpStatusCode === 200) {
-                if (this._taskRetriedTimes.has(task.id)) {
-                    this._taskRetriedTimes.delete(task.id);
-                }
-                return await this._store.putItem(item);
+                await this._store.putItem(item);
+                return TaskStatus.Success;
             } else if (httpStatusCode !== 404) {
-                this.retryTask(task);
-                return;
+                return TaskStatus.NeedRetry;
             }
-            if (this._taskRetriedTimes.has(task.id)) {
-                this._taskRetriedTimes.delete(task.id);
-            }
+            return TaskStatus.Fail;
         }
     }
 
     public async start(): Promise<any> {
-        this._taskOrchestra.queue(new MainTask(TaskType.MAIN));
+        await this._taskOrchestra.queue(new MainTask(TaskType.MAIN));
         this._taskOrchestra.start(this);
     }
 
     public async end(): Promise<any> {
         this._taskOrchestra.stop();
-        this._taskRetriedTimes.clear();
-    }
-
-    private checkMaxRetriedTime(task: Task): boolean {
-        if (this._taskRetriedTimes.has(task.id)) {
-            if (this._taskRetriedTimes.get(task.id) > MAX_TASK_RETRIED_TIMES) {
-                return true;
-            }
-            this._taskRetriedTimes.set(task.id, this._taskRetriedTimes.get(task.id) + 1);
-        } else {
-            this._taskRetriedTimes.set(task.id, 1);
-        }
-        return false;
-    }
-
-    private retryTask(task: Task): void {
-        // retry this task
-        if (this.checkMaxRetriedTime(task)) {
-            if (task instanceof MainTask && task.type === TaskType.MAIN) {
-                captureMessage(`${this.className}, maximum retries reached, Main Task (${task.pageNo})`);
-            } else if (task instanceof SubTask && task.type === TaskType.SUB) {
-                captureMessage(`${this.className}, maximum retries reached, Sub Task (${JSON.stringify(task.item)})`);
-            } else {
-                captureMessage(`${this.className}, maximum retries reached, Common Task`);
-            }
-            return;
-        }
-        this._taskOrchestra.queue(task);
     }
 }

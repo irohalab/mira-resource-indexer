@@ -17,10 +17,10 @@
 import { injectable } from 'inversify';
 import { inspect } from 'util';
 import { Item } from '../entity/Item';
-import { PersistentStorage } from '../types';
+import { ItemStorage } from '../types';
 
 @injectable()
-export class InMemoryStore<T> implements PersistentStorage<T> {
+export class InMemoryItemStore<T> implements ItemStorage<T> {
     private _itemTable = new Map<T, Item<T>>();
     public deleteItem(id: T): Promise<boolean> {
         this._itemTable.delete(id);

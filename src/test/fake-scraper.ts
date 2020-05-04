@@ -16,6 +16,7 @@
 
 import { inject, injectable } from 'inversify';
 import { TaskOrchestra } from '../task/task-orchestra';
+import { TaskStatus } from '../task/task-status';
 import { Task, TaskType } from '../task/task-types';
 import { Scraper } from '../types';
 import { FakeTask } from './fake-task';
@@ -24,7 +25,13 @@ export const MIN_INTERVAL = 10;
 
 export interface FakeResource {
     page: number;
-    ids: number[];
+    subResources: FakeSubResource[];
+}
+
+export interface FakeSubResource {
+    id: number;
+    willSuccess: boolean;
+    retryCount: number;
 }
 
 @injectable()
@@ -42,37 +49,46 @@ export class FakeScraper implements Scraper {
         return Promise.resolve(null);
     }
 
-    public executeTask(task: Task): Promise<any> {
+    public async executeTask(task: Task): Promise<TaskStatus> {
         if (task.type === TaskType.SUB) {
-            return this.doExecuteSubTask((task as FakeTask).payload);
+            return await this.doExecuteSubTask(task as FakeTask);
         } else {
             if (task instanceof FakeTask) {
-                return this.doExecuteMainTask(task.pageNo);
+                await this.doExecuteMainTask(task.pageNo);
             } else {
-                return this.doExecuteMainTask(1);
+                await this.doExecuteMainTask(1);
             }
+            return TaskStatus.Success;
         }
     }
 
-    public start(): Promise<any> {
-        this._taskOrchestra.queue(new FakeTask(TaskType.MAIN));
+    public async start(): Promise<any> {
+        await this._taskOrchestra.queue(new FakeTask(TaskType.MAIN));
         this._taskOrchestra.start(this);
         return Promise.resolve(null);
     }
 
-    private async doExecuteSubTask(payload: any): Promise<any> {
-        this.resolvedIds.push({id: payload as number, timestamp: Date.now()});
+    private async doExecuteSubTask(task: FakeTask): Promise<TaskStatus> {
+        let payload = task.payload as FakeSubResource;
+        if (payload.willSuccess) {
+            this.resolvedIds.push({id: payload.id, timestamp: Date.now()});
+            return TaskStatus.Success;
+        } else if (payload.retryCount === 0) {
+            return TaskStatus.Fail;
+        } else {
+            return TaskStatus.NeedRetry;
+        }
     }
 
     private async doExecuteMainTask(page: number): Promise<any> {
-        let ids = this.resources[page - 1].ids;
-        for (let id of ids) {
-            this._taskOrchestra.queue(new FakeTask(TaskType.SUB, id));
+        let subResources = this.resources[page - 1].subResources;
+        for (let subResource of subResources) {
+            await this._taskOrchestra.queue(new FakeTask(TaskType.SUB, subResource));
         }
         if (this.resources.length > page - 1) {
             let newMainTask = new FakeTask(TaskType.MAIN);
             newMainTask.pageNo = page + 1;
-            this._taskOrchestra.queue(newMainTask);
+            await this._taskOrchestra.queue(newMainTask);
         }
     }
 }

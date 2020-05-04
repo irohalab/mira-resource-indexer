@@ -17,12 +17,12 @@
 import { inject } from 'inversify';
 import { controller, httpGet, queryParam, BaseHttpController } from 'inversify-express-utils';
 import { interfaces } from 'inversify-express-utils/dts/interfaces';
-import { PersistentStorage, TYPES } from '../types';
+import { ItemStorage, TYPES } from '../types';
 
 @controller('/item')
 export class ItemsQuery<T> extends BaseHttpController {
 
-    constructor(@inject(TYPES.PersistentStorage) private _storage: PersistentStorage<T>) {
+    constructor(@inject(TYPES.ItemStorage) private _storage: ItemStorage<T>) {
         super();
     }
 

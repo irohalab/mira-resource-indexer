@@ -22,7 +22,7 @@ import { ItemType } from '../entity/item-type';
 import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, PersistentStorage, TYPES } from '../types';
+import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
@@ -32,12 +32,11 @@ export class NyaaScraper extends BaseScraper<number> {
     private static _host = 'https://nyaa.si';
 
     constructor(
-        @inject(TYPES.PersistentStorage) store: PersistentStorage<number>,
+        @inject(TYPES.ItemStorage) store: ItemStorage<number>,
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
         @inject(TYPES.ConfigLoader) config: ConfigLoader
     ) {
         super(taskOrchestra, config, store);
-        this._taskRetriedTimes = new Map<number, number>();
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Array<Item<number>>, hasNext: boolean }> {
