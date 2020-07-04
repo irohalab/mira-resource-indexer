@@ -14,26 +14,8 @@
  * limitations under the License.
  */
 
-let taskCount = 0;
-
-export enum TaskType {
-    SUB = 0,
-    MAIN = 1
-}
-
-export interface Task {
-    id: number;
-    type: TaskType;
-    timestamp: number;
-    retryCount?: number;
-    updateTime?: number;
-}
-
-export class CommonTask implements Task {
-    public id: number;
-    public timestamp: number;
-    constructor(public type: TaskType) {
-        this.id = taskCount++;
-        this.timestamp = Date.now();
-    }
+export enum TaskStatus {
+    Success,
+    Fail,
+    NeedRetry
 }

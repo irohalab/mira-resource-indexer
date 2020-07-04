@@ -15,18 +15,18 @@
  */
 
 import { Item } from './entity/Item';
+import { TaskStatus } from './task/task-status';
 import { Task } from './task/task-types';
 
 export const TYPES = {
     ConfigLoader: Symbol.for('ConfigLoader'),
-    PersistentStorage: Symbol.for('PersistentStorage'),
+    ItemStorage: Symbol.for('ItemStorage'),
     Scraper: Symbol.for('Scraper'),
+    TaskStorage: Symbol.for('TaskStorage'),
     TaskTimingFactory: Symbol.for('TaskTiming')
 };
 
-export interface PersistentStorage<T> {
-    onStart(): Promise<void>;
-    onEnd(): Promise<void>;
+export interface ItemStorage<T> {
     deleteItem(id: T): Promise<boolean>;
     getItem(id: T): Promise<Item<T>|null>;
     hasItem(id: T): Promise<boolean>;
@@ -35,10 +35,25 @@ export interface PersistentStorage<T> {
     searchItem(keyword: string): Promise<Array<Item<T>>>;
 }
 
+export interface TaskStorage {
+    offerTask(task: Task): Promise<boolean>;
+    pollTask(): Promise<Task>;
+    offerFailedTask(task: Task): Promise<boolean>;
+    pollFailedTask(): Promise<Task>;
+    hasTask(): Promise<boolean>;
+    hasFailedTask(): Promise<boolean>;
+}
+
 export interface Scraper {
     start(): Promise<any>;
     end(): Promise<any>;
-    executeTask(task: Task): Promise<any>;
+
+    /**
+     * Execute the task.
+     * @param {Task} task
+     * @returns {Promise<boolean>} true, the
+     */
+    executeTask(task: Task): Promise<TaskStatus>;
 }
 
 export interface ConfigLoader {

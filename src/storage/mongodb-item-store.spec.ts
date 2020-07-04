@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-import { Expect, Ignore, Setup, SetupFixture, Teardown, TeardownFixture, Test, TestCase, TestFixture } from 'alsatian';
+import { Expect, Setup, SetupFixture, Teardown, Test, TestCase, TestFixture } from 'alsatian';
 import { fail } from 'assert';
 import { Container } from 'inversify';
-import { FakeConfigManager } from '../test/fake-config';
-import { ConfigLoader, PersistentStorage, TYPES } from '../types';
-import { items } from '../test/test-samples';
 import { MongoClient } from 'mongodb';
-import { MongodbStore } from './mongodb-store';
+import { DatabaseService } from '../service/database-service';
+import { FakeConfigManager } from '../test/fake-config';
+import { items } from '../test/test-samples';
+import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { MongodbItemStore } from './mongodb-item-store';
 
 @TestFixture('MongodbStore test spec')
-export class MongodbStoreSpec {
-    private _store: MongodbStore<number>;
+export class MongodbItemStoreSpec {
+    private _store: MongodbItemStore<number>;
     private _config: ConfigLoader;
     private _container: Container;
+    private _databaseService: DatabaseService;
 
     private _collectionName: string = 'items';
 
@@ -38,7 +40,8 @@ export class MongodbStoreSpec {
         }
         this._container = new Container();
         this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
-        this._container.bind<PersistentStorage<number>>(TYPES.PersistentStorage).to(MongodbStore).inTransientScope();
+        this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
+        this._container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inTransientScope();
         this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
         this._config.load();
         // this._config.dbHost = 'mongo';
@@ -48,13 +51,14 @@ export class MongodbStoreSpec {
     @Setup
     public async databaseInit(): Promise<void> {
         // Cast to PostgresStore<number>
-        this._store = this._container.get<PersistentStorage<number>>(TYPES.PersistentStorage) as MongodbStore<number>;
-        await this._store.onStart();
+        this._databaseService = await this._container.get<DatabaseService>(DatabaseService);
+        await this._databaseService.onStart();
+        this._store = this._container.get<ItemStorage<number>>(TYPES.ItemStorage) as MongodbItemStore<number>;
     }
 
     @Teardown
     public async databaseCleanUp(): Promise<void> {
-        await this._store.onEnd();
+        await this._databaseService.onEnd();
         const client = await this._createClient();
         await client.db(this._config.dbName).collection(this._collectionName).drop();
     }
