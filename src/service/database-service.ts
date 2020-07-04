@@ -24,10 +24,6 @@ export class DatabaseService {
     private _db: Db;
     private _client: MongoClient;
 
-    public get isStarted(): boolean {
-        return this._client && this._client.isConnected();
-    }
-
     public get db(): Db {
         return this._db;
     }
@@ -40,9 +36,6 @@ export class DatabaseService {
     }
 
     public async onStart(): Promise<void> {
-        if (this.isStarted) {
-            return;
-        }
         const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
             this._config.dbHost
             }:${this._config.dbPort}?authSource=${this._config.authSource}`;
