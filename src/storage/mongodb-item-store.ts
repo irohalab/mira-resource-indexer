@@ -32,6 +32,7 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
 
     constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
                 private _databaseService: DatabaseService) {
+        this._databaseService.checkCollection([this._collectionName]);
     }
 
     public deleteItem(id: T): Promise<boolean> {

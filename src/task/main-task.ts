@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-import { CommonTask, TaskType } from './task-types';
+import { CommonTask, Task, TaskType } from './task-types';
 
 export class MainTask extends CommonTask {
     public id: number;
     public pageNo: number = 1;
     constructor(type: TaskType) {
         super(type);
+    }
+
+    public equals(task: Task): boolean {
+        return task.type === this.type && (task as MainTask).pageNo === (task as MainTask).pageNo;
     }
 }
