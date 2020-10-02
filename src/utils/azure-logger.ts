@@ -34,7 +34,7 @@ export class AzureLogger {
         return this.instance;
     }
     private static instance: AzureLogger;
-    private scraperMode: string;
+    private readonly scraperMode: string;
     private isEnabled: boolean = false;
     private appInsightClient: TelemetryClient;
     private constructor() {
@@ -57,14 +57,16 @@ export class AzureLogger {
     }
 
     public log(eventName: string, message: string, level: string, meta: {[key: string]: string}): void {
-        this.appInsightClient.trackEvent({
-            name: eventName,
-            properties: {
-                level,
-                message,
-                meta,
-                scraperMode: this.scraperMode
-            }
-        });
+        if (this.isEnabled) {
+            this.appInsightClient.trackEvent({
+                name: eventName,
+                properties: {
+                    level,
+                    message,
+                    meta,
+                    scraperMode: this.scraperMode
+                }
+            });
+        }
     }
 }
