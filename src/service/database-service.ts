@@ -17,18 +17,24 @@
 import { inject, injectable } from 'inversify';
 import { Db, MongoClient } from 'mongodb';
 import { ConfigLoader, TYPES } from '../types';
+import { AzureLogger } from '../utils/azure-logger';
+import { captureException } from '../utils/sentry';
 
 @injectable()
 export class DatabaseService {
 
     private _db: Db;
     private _client: MongoClient;
+    private _collectionNames: string[] = [];
+
+    private _logger: AzureLogger;
 
     public get db(): Db {
         return this._db;
     }
 
     constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+        this._logger = AzureLogger.getInstance();
     }
 
     public async onEnd(): Promise<void> {
@@ -41,6 +47,61 @@ export class DatabaseService {
             }:${this._config.dbPort}?authSource=${this._config.authSource}`;
         this._client = await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
         this._db = this._client.db(this._config.dbName);
+        await this._doCheckCollection();
         return Promise.resolve();
+    }
+
+    public checkCollection(collectionNames: string[]): void {
+        this._collectionNames = this._collectionNames.concat(collectionNames);
+        if (this.db) {
+            this._doCheckCollection()
+                .then(() => {
+                    console.log('collection checked');
+                });
+        }
+    }
+
+    public async transaction(transactionAction: (client: MongoClient) => Promise<void>): Promise<void> {
+        let session = null;
+        try {
+            session = this._client.startSession();
+            await session.withTransaction(async () => {
+                await transactionAction(this._client);
+            });
+        } catch (e) {
+            console.error(e);
+            this._logger.log('transaction_error', e.Message, AzureLogger.ERROR, {
+                stack: e.stack
+            });
+            captureException(e);
+        } finally {
+            if (session != null) {
+                session.endSession();
+            }
+        }
+    }
+
+    private async _doCheckCollection(): Promise<void> {
+        let collectionNames = this._collectionNames;
+        let existCollections: string[];
+        let cur = null;
+        try {
+            cur = this.db.listCollections({}, {nameOnly: true});
+            existCollections = await cur.toArray() as string[];
+            if (existCollections) {
+                for (let collectionName of collectionNames) {
+                    if (existCollections.indexOf(collectionName) === -1) {
+                        await this.db.createCollection(collectionName);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            captureException(e);
+        } finally {
+            if (cur != null && !cur.isClosed()) {
+                cur.close();
+            }
+        }
     }
 }

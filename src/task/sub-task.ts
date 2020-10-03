@@ -15,11 +15,18 @@
  */
 
 import { Item } from '../entity/Item';
-import { CommonTask, TaskType } from './task-types';
+import { CommonTask, Task, TaskType } from './task-types';
 
 export class SubTask<T> extends CommonTask {
     constructor(type: TaskType,
                 public item?: Item<T>) {
         super(type);
+    }
+
+    public equals(task: Task): boolean {
+        return task.type === this.type
+            && !!(task as SubTask<T>).item
+            && !!this.item
+            && (task as SubTask<T>).item.uri === this.item.uri;
     }
 }

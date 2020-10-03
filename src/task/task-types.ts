@@ -27,6 +27,7 @@ export interface Task {
     timestamp: number;
     retryCount?: number;
     updateTime?: number;
+    equals(task: Task): boolean;
 }
 
 export class CommonTask implements Task {
@@ -35,5 +36,9 @@ export class CommonTask implements Task {
     constructor(public type: TaskType) {
         this.id = taskCount++;
         this.timestamp = Date.now();
+    }
+
+    public equals(task: Task): boolean {
+        return task.type === this.type && this.type === TaskType.MAIN;
     }
 }
