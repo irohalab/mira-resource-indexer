@@ -58,6 +58,7 @@ export class TaskOrchestra {
                 /* Need to ensure the list page is checked regularly */
                 if (Date.now() - this._lastMainTaskExeTime > this._config.minCheckInterval) {
                     // force queue a MainTask
+                    console.log('force queue', this._lastMainTaskExeTime, this._config.minCheckInterval);
                     this.queue(new CommonTask(TaskType.MAIN))
                         .then(() => {
                             this._timerId = setTimeout(() => {
@@ -72,6 +73,7 @@ export class TaskOrchestra {
                         this.pick();
                     }, actualInterval);
                 } else {
+                    console.log('no task in queue, queue a main task');
                     this.queue(new CommonTask(TaskType.MAIN))
                         .then(() => {
                             let offset = Date.now() - this._lastMainTaskExeTime;

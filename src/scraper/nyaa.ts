@@ -23,9 +23,12 @@ import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { AzureLogger } from '../utils/azure-logger';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
+
+const logger = AzureLogger.getInstance();
 
 @injectable()
 export class NyaaScraper extends BaseScraper<number> {
@@ -45,8 +48,9 @@ export class NyaaScraper extends BaseScraper<number> {
             if (pageNo) {
                 listPageUrl += '/?p=' + pageNo;
             }
-            const resp = await Axios.get(listPageUrl);
             console.log(`Scrapping ${listPageUrl}`);
+            const resp = await Axios.get(listPageUrl);
+
             const $ = cheerio.load(resp.data);
             const trList = Array.from($('table > tbody > tr'));
             let items: Array<Item<number>> = [];
@@ -71,7 +75,10 @@ export class NyaaScraper extends BaseScraper<number> {
             return { hasNext: newIds.length === items.length && newIds.length > 0, items: newItems };
 
         } catch (e) {
-            captureException(e);
+            if (e.code !== 'ETIMEDOUT') {
+                captureException(e);
+            }
+            logger.log('exception', e.stack, AzureLogger.ERROR, {line: '81'});
             console.error(e.stack);
             return null;
         }
@@ -80,9 +87,11 @@ export class NyaaScraper extends BaseScraper<number> {
     public async executeSubTask(item: Item<number>): Promise<number> {
         let statusCode = -1;
         try {
-            const resp = await Axios.get(`${NyaaScraper._host}${item.uri}`);
+            const subTaskUrl = `${NyaaScraper._host}${item.uri}`;
+            console.log(`Scrapping ${subTaskUrl}`);
+            const resp = await Axios.get(subTaskUrl);
             statusCode = resp.status;
-            console.log(`Scrapping ${NyaaScraper._host}${item.uri}`);
+
             const $ = cheerio.load(resp.data);
             const panels = $('.container > .panel');
             item.title = panels.eq(0).find('.panel-title').text().trim();
@@ -129,8 +138,12 @@ export class NyaaScraper extends BaseScraper<number> {
             } else {
                 statusCode = -1;
             }
-            captureException(e);
-            console.error(e.stack);
+            logger.log('exception', e.stack, AzureLogger.ERROR, {line: '141'});
+            if (statusCode !== 404 && e.code !== 'ETIMEDOUT') {
+                captureException(e);
+            }
+
+            console.error(JSON.stringify(e));
         }
         return statusCode;
     }

@@ -1,6 +1,6 @@
 {
   "name": "indexer",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "scripts": {
     "clean:dist": "rimraf dist/*",
     "build": "npm run clean:dist && tsc && cp package.json dist",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@sentry/node": "5.10.2",
+    "applicationinsights": "^1.8.7",
     "axios": "^0.18.1",
     "cheerio": "^1.0.0-rc.3",
     "express": "^4.17.1",

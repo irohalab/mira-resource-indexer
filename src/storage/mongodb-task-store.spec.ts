@@ -18,12 +18,15 @@ import { Expect, Setup, SetupFixture, Teardown, Test, TestFixture } from 'alsati
 import { fail } from 'assert';
 import { Container } from 'inversify';
 import { MongoClient } from 'mongodb';
+import { Item } from '../entity/Item';
 import { DatabaseService } from '../service/database-service';
-import { CommonTask, TaskType } from '../task/task-types';
+import { SubTask } from '../task/sub-task';
+import { TaskType } from '../task/task-types';
 import { FakeConfigManager } from '../test/fake-config';
 import { ConfigLoader, TaskStorage, TYPES } from '../types';
 import { MongodbTaskStore } from './mongodb-task-store';
 
+// noinspection DuplicatedCode
 @TestFixture('MongodbStore test spec')
 export class MongodbItemStoreSpec {
     private _store: MongodbTaskStore;
@@ -66,17 +69,34 @@ export class MongodbItemStoreSpec {
     public async taskQueueOperation(): Promise<void> {
         const tasks = [];
         for (let i = 0; i < 10; i++) {
-            tasks.push(new CommonTask(TaskType.SUB));
+            let item = new Item<number>();
+            item.id = i;
+            item.uri = `/item/${i}`;
+            tasks.push(new SubTask(TaskType.SUB, item));
         }
+
+        /* make a duplicate task */
+        let dupItem = new Item();
+        dupItem.id = 0;
+        dupItem.uri = `/item/0`;
+        tasks.push(new SubTask(TaskType.SUB, dupItem));
+        /* --- */
 
         for (let task of tasks) {
             await this._store.offerTask(task);
         }
 
-        let idx = 0;
+        let idx = 1;
+        let dupCount = 0;
         while (await this._store.hasTask()) {
             let task = await this._store.pollTask();
-            Expect(task.id).toBe(tasks[idx].id);
+            if ((task as SubTask<number>).item.uri === '/item/0') {
+                Expect(task.id).toBe(tasks[tasks.length - 1].id);
+                Expect(dupCount).toBe(0);
+                dupCount++;
+            } else {
+                Expect(task.id).toBe(tasks[idx].id);
+            }
             let sleepTime = Math.round(Math.random() * 20);
             await this.sleep(sleepTime);
             idx++;
@@ -91,17 +111,34 @@ export class MongodbItemStoreSpec {
     public async failedTaskQueueOperation(): Promise<void> {
         const tasks = [];
         for (let i = 0; i < 10; i++) {
-            tasks.push(new CommonTask(TaskType.SUB));
+            let item = new Item<number>();
+            item.id = i;
+            item.uri = `/item/${i}`;
+            tasks.push(new SubTask(TaskType.SUB, item));
         }
+
+        /* make a duplicate task */
+        let dupItem = new Item();
+        dupItem.id = 0;
+        dupItem.uri = `/item/0`;
+        tasks.push(new SubTask(TaskType.SUB, dupItem));
+        /* --- */
 
         for (let task of tasks) {
             await this._store.offerFailedTask(task);
         }
 
-        let idx = 0;
+        let idx = 1;
+        let dupCount = 0;
         while (await this._store.hasFailedTask()) {
             let task = await this._store.pollFailedTask();
-            Expect(task.id).toBe(tasks[idx].id);
+            if ((task as SubTask<number>).item.uri === '/item/0') {
+                Expect(task.id).toBe(tasks[tasks.length - 1].id);
+                Expect(dupCount).toBe(0);
+                dupCount++;
+            } else {
+                Expect(task.id).toBe(tasks[idx].id);
+            }
             Expect(task.retryCount).toBeGreaterThan(0);
             let sleepTime = Math.round(Math.random() * 20);
             await this.sleep(sleepTime);
