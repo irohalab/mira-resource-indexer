@@ -21,6 +21,7 @@ services:
       DB_NAME: "dmhy_indexer"
       SERVER_PORT: "4000"
       SENTRY_DSN: "${SENTRY_DSN}"
+      APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"
 
   bangumi_moe:
     << : *web-common
@@ -36,6 +37,7 @@ services:
       DB_NAME: "bangumi_moe_indexer"
       SERVER_PORT: "4200"
       SENTRY_DSN: "${SENTRY_DSN}"
+      APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"
 
   nyaa:
     << : *web-common
@@ -51,3 +53,4 @@ services:
       DB_NAME: "nyaa_indexer"
       SERVER_PORT: "4300"
       SENTRY_DSN: "${SENTRY_DSN}"
+      APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"

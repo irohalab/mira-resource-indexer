@@ -75,7 +75,10 @@ export class NyaaScraper extends BaseScraper<number> {
             return { hasNext: newIds.length === items.length && newIds.length > 0, items: newItems };
 
         } catch (e) {
-            captureException(e);
+            if (e.code !== 'ETIMEDOUT') {
+                captureException(e);
+            }
+            logger.log('exception', e.stack, AzureLogger.ERROR, {line: '81'});
             console.error(e.stack);
             return null;
         }
@@ -135,9 +138,12 @@ export class NyaaScraper extends BaseScraper<number> {
             } else {
                 statusCode = -1;
             }
-            logger.log('exception', e.stack, AzureLogger.ERROR, {line: '135'});
-            captureException(e);
-            console.error(e.stack);
+            logger.log('exception', e.stack, AzureLogger.ERROR, {line: '141'});
+            if (statusCode !== 404 && e.code !== 'ETIMEDOUT') {
+                captureException(e);
+            }
+
+            console.error(JSON.stringify(e));
         }
         return statusCode;
     }
