@@ -28,9 +28,6 @@ import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
 
-// tslint:disable-next-line:variable-name no-var-requires
-const HttpsProxyAgent = require('https-proxy-agent');
-
 const logger = AzureLogger.getInstance();
 
 @injectable()
@@ -52,12 +49,7 @@ export class NyaaScraper extends BaseScraper<number> {
                 listPageUrl += '/?p=' + pageNo;
             }
             console.log(`Scrapping ${listPageUrl}`);
-            const agent = new HttpsProxyAgent('http://127.0.0.1:8118');
-            const resp = await Axios.get(listPageUrl, {
-                httpsAgent: agent,
-                proxy: false
-            });
-            console.log(`Get ${listPageUrl} data successful`);
+            const resp = await Axios.get(listPageUrl);
 
             const $ = cheerio.load(resp.data);
             const trList = Array.from($('table > tbody > tr'));
@@ -94,12 +86,7 @@ export class NyaaScraper extends BaseScraper<number> {
         try {
             const subTaskUrl = `${NyaaScraper._host}${item.uri}`;
             console.log(`Scrapping ${subTaskUrl}`);
-            const agent = new HttpsProxyAgent('http://127.0.0.1:8118');
-            const resp = await Axios.get(subTaskUrl, {
-                httpsAgent: agent,
-                proxy: false
-            });
-            console.log(`Get ${subTaskUrl} data successful`);
+            const resp = await Axios.get(subTaskUrl);
             statusCode = resp.status;
 
             const $ = cheerio.load(resp.data);
