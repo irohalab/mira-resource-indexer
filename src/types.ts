@@ -71,5 +71,6 @@ export interface ConfigLoader {
     minCheckInterval: number; // for main task, unit is millisecond
     maxPageNo: number; // max page number for scrapping
     maxSearchCount: number; // max search result count
+    maxRetryCount: number; // max retry times for a task
     load(): void;
 }
