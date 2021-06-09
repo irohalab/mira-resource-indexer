@@ -34,6 +34,7 @@ export class FakeConfigManager implements ConfigLoader {
     public maxPageNo: number;
     public maxSearchCount: number;
     public serverHost: string;
+    public maxRetryCount: number;
 
     public load(): void {
         this.mode = process.env.INDEXER_MODE;
@@ -57,5 +58,6 @@ export class FakeConfigManager implements ConfigLoader {
         this.minCheckInterval = parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60);
         this.maxPageNo = parseInt(process.env.MAX_PAGE_NO, 10) || 5;
         this.maxSearchCount = parseInt(process.env.MAX_SEARCH_COUNT, 10) || 100;
+        this.maxRetryCount = parseInt(process.env.MAX_RETRY_COUNT, 10) || 5;
     }
 }
