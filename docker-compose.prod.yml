@@ -5,6 +5,10 @@ x-web-common:
   image: "docker.pkg.github.com/irohalab/mira-resource-indexer/indexer:${DOCKER_TAG}"
   cap_add:
     - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker
+  logging:
+    driver: gelf
+    options:
+      gelf-address: "udp://elastic:5000"
 
 services:
   dmhy:
