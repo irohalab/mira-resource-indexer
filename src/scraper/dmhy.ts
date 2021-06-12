@@ -28,6 +28,7 @@ import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { toUTCDate, trimDomain } from '../utils/normalize';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
+import { logger } from '../utils/logger-factory';
 
 const PROXY = process.env.HTTP_PROXY; // a http proxy for this
 const IS_DEBUG = process.env.NODE_ENV === 'debug';
@@ -115,7 +116,9 @@ export class DmhyScraper extends BaseScraper<number> {
             if (pageNo) {
                 listPageUrl += '/topics/list/page/' + pageNo;
             }
-            console.log(`Scrapping ${listPageUrl}`);
+            logger.info('execute_main_task', {
+                pageNo
+            });
             await page.goto(listPageUrl, {
                 waitUntil: 'domcontentloaded'
             });
@@ -150,7 +153,13 @@ export class DmhyScraper extends BaseScraper<number> {
             return {hasNext: newIds.length === items.length && newIds.length > 0, items: newItems};
         } catch (e) {
             captureException(e);
-            console.error(e.stack);
+            logger.warn('execute_main_task_exception', {
+                code: e.code,
+                error_message: e.message,
+                line: '157',
+                page_no: pageNo,
+                stack: e.stack
+            });
             return null;
         } finally {
             await page.close();
@@ -164,7 +173,9 @@ export class DmhyScraper extends BaseScraper<number> {
         try {
             await page.setRequestInterception(true);
             this.blockResources(page);
-            console.log(`Scrapping ${DmhyScraper._host + item.uri}`);
+            logger.info('execute_sub_task', {
+                item
+            });
             const response = await page.goto(DmhyScraper._host + item.uri, {
                 waitUntil: 'domcontentloaded'
             });
@@ -251,7 +262,13 @@ export class DmhyScraper extends BaseScraper<number> {
                 statusCode = -1;
             }
             captureException(e);
-            console.error(e.stack);
+            logger.warn('execute_sub_task_exception', {
+                code: e.code,
+                error_message: e.message,
+                item,
+                line: '265',
+                stack: e.stack
+            });
         } finally {
             await page.close();
         }
