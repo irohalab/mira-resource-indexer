@@ -110,6 +110,10 @@ export class TaskOrchestra {
     private async pickFailedTask(): Promise<boolean> {
         if (await this._taskStore.hasFailedTask()) {
             let task = await this._taskStore.pollFailedTask();
+            if (task.retryCount > this._config.maxRetryCount) {
+                // drop task
+                return false;
+            }
             let result = await this._scraper.executeTask(task);
             if (result === TaskStatus.NeedRetry) {
                 await this._taskStore.offerFailedTask(task);
