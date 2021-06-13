@@ -21,7 +21,6 @@ import { MainTask } from '../task/main-task';
 import { SubTask } from '../task/sub-task';
 import { Task, TaskType } from '../task/task-types';
 import { ConfigLoader, TaskStorage, TYPES } from '../types';
-import { AzureLogger } from '../utils/azure-logger';
 
 @injectable()
 export class MongodbTaskStore implements TaskStorage {
@@ -32,48 +31,37 @@ export class MongodbTaskStore implements TaskStorage {
 
     private _taskCollectionName = 'task';
     private _failedTaskCollectionName = 'failed_task';
-    private _logger: AzureLogger;
 
     constructor(private _databaseService: DatabaseService,
                 @inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
-        this._logger = AzureLogger.getInstance();
         this._databaseService.checkCollection([this._taskCollectionName, this._failedTaskCollectionName]);
     }
 
     public async pollFailedTask(): Promise<Task> {
         let task = await this.poll(this._failedTaskCollectionName);
         task.retryCount = task.retryCount ? task.retryCount++ : 1;
-        this._logger.log('pollFailedTask', `task#${task.id} has been polled from queue`,
-            AzureLogger.INFO, {task: JSON.stringify(task)});
         return task;
     }
 
     public async pollTask(): Promise<Task> {
-        const task = await this.poll(this._taskCollectionName);
-        console.log(`poll task#${task.id}`);
-        return task;
+        return await this.poll(this._taskCollectionName);
     }
 
     public offerFailedTask(task: Task): Promise<boolean> {
-        this._logger.log('offerFailedTask', `task#${task.id} has been offered into queue`,
-            AzureLogger.INFO, {task: JSON.stringify(task)});
         return this.push(this._failedTaskCollectionName, task);
     }
 
     public offerTask(task: Task): Promise<boolean> {
-        console.log(`push task#${task.id}, type ${task.type.toString()}`);
         return this.push(this._taskCollectionName, task);
     }
 
     public async hasTask(): Promise<boolean> {
         let count = await this.db.collection(this._taskCollectionName).estimatedDocumentCount();
-        console.log('hasTask ', count);
         return count > 0;
     }
 
     public async hasFailedTask(): Promise<boolean> {
         let count = await this.db.collection(this._failedTaskCollectionName).estimatedDocumentCount();
-        console.log('hasFailedTask', count);
         return count > 0;
     }
 
@@ -91,7 +79,6 @@ export class MongodbTaskStore implements TaskStorage {
             await taskCollection.deleteMany(filterObj);
             await taskCollection.insertOne(Object.assign({}, task, {updateTime: Date.now()}));
         });
-        console.log(`push task#${task.id}`, `task type ${task.type}`);
         return Promise.resolve(true);
     }
 

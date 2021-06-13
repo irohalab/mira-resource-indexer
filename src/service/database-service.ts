@@ -17,8 +17,8 @@
 import { inject, injectable } from 'inversify';
 import { Db, MongoClient } from 'mongodb';
 import { ConfigLoader, TYPES } from '../types';
-import { AzureLogger } from '../utils/azure-logger';
 import { captureException } from '../utils/sentry';
+import { logger } from '../utils/logger-factory';
 
 @injectable()
 export class DatabaseService {
@@ -27,14 +27,11 @@ export class DatabaseService {
     private _client: MongoClient;
     private _collectionNames: string[] = [];
 
-    private _logger: AzureLogger;
-
     public get db(): Db {
         return this._db;
     }
 
     constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
-        this._logger = AzureLogger.getInstance();
     }
 
     public async onEnd(): Promise<void> {
@@ -56,7 +53,7 @@ export class DatabaseService {
         if (this.db) {
             this._doCheckCollection()
                 .then(() => {
-                    console.log('collection checked');
+                    logger.info('collection checked');
                 });
         }
     }
@@ -69,8 +66,7 @@ export class DatabaseService {
                 await transactionAction(this._client);
             });
         } catch (e) {
-            console.error(e);
-            this._logger.log('transaction_error', e.Message, AzureLogger.ERROR, {
+            logger.error('transaction_error', {
                 stack: e.stack
             });
             captureException(e);

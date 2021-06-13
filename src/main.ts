@@ -29,6 +29,7 @@ import { TaskTiming } from './task/task-timing';
 import { ConfigLoader, ItemStorage, Scraper, TaskStorage, TYPES } from './types';
 import './rest-api/items-query';
 import { captureMessage } from './utils/sentry';
+import { logger } from './utils/logger-factory';
 
 /* Initialize container */
 const container = new Container();
@@ -66,7 +67,7 @@ const databaseService = container.get<DatabaseService>(DatabaseService);
 
 // catches Ctrl+C event
 process.on('SIGINT', async () => {
-    console.log('stopping scrapper and store...');
+    logger.info('stopping scrapper and store...');
     await scraper.end();
     await databaseService.onEnd();
     process.exit();
