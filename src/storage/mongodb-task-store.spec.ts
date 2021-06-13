@@ -62,6 +62,14 @@ export class MongodbItemStoreSpec {
 
     @Teardown
     public async databaseCleanUp(): Promise<void> {
+        const client = await this._createClient();
+        const cur = client.db(this._config.dbName).listCollections({}, {nameOnly: true});
+        const existCollections = await cur.toArray();
+        if (existCollections) {
+            for (let collectionName of existCollections) {
+                await client.db(this._config.dbName).collection(collectionName.name).drop();
+            }
+        }
         await this._databaseService.onEnd();
     }
 
@@ -102,9 +110,6 @@ export class MongodbItemStoreSpec {
             idx++;
         }
         Expect(await this._store.hasTask()).toBe(false);
-
-        const client = await this._createClient();
-        await client.db(this._config.dbName).collection(this._taskCollectionName).drop();
     }
 
     @Test('Failed Task Queue Operation')
@@ -146,8 +151,23 @@ export class MongodbItemStoreSpec {
         }
         Expect(await this._store.hasFailedTask()).toBe(false);
 
-        const client = await this._createClient();
-        await client.db(this._config.dbName).collection(this._failedTaskCollectionName).drop();
+    }
+
+    @Test('Test retry count')
+    public async retryCont() {
+        let retryCount = 0;
+        let item = new Item();
+        item.id = 0;
+        item.uri = '/item/0';
+        let failedTask = new SubTask(TaskType.SUB, item);
+        for (let i = 0; i < 10; i++) {
+            await this._store.offerFailedTask(failedTask);
+            Expect(await this._store.hasFailedTask()).toBe(true);
+            failedTask = await this._store.pollFailedTask();
+            retryCount++;
+            Expect(failedTask).not.toBeNull();
+            Expect(failedTask.retryCount).toEqual(retryCount);
+        }
     }
 
     private async _createClient(): Promise<MongoClient> {

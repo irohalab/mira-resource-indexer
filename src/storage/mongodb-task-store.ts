@@ -39,7 +39,7 @@ export class MongodbTaskStore implements TaskStorage {
 
     public async pollFailedTask(): Promise<Task> {
         let task = await this.poll(this._failedTaskCollectionName);
-        task.retryCount = task.retryCount ? task.retryCount++ : 1;
+        task.retryCount = task.retryCount ? task.retryCount + 1 : 1;
         return task;
     }
 
