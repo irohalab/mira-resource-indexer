@@ -19,6 +19,7 @@ import { ConfigLoader, Scraper, TaskStorage, TYPES } from '../types';
 import { TaskStatus } from './task-status';
 import { CommonTask, Task, TaskType } from './task-types';
 import Timeout = NodeJS.Timeout;
+import { logger } from '../utils/logger-factory';
 
 @injectable()
 export class TaskOrchestra {
@@ -58,7 +59,10 @@ export class TaskOrchestra {
                 /* Need to ensure the list page is checked regularly */
                 if (Date.now() - this._lastMainTaskExeTime > this._config.minCheckInterval) {
                     // force queue a MainTask
-                    console.log('force queue', this._lastMainTaskExeTime, this._config.minCheckInterval);
+                    logger.info('force_queue', {
+                        last_main_task_execute_time: this._lastMainTaskExeTime,
+                        min_check_interval: this._config.minCheckInterval
+                    });
                     this.queue(new CommonTask(TaskType.MAIN))
                         .then(() => {
                             this._timerId = setTimeout(() => {
@@ -73,7 +77,7 @@ export class TaskOrchestra {
                         this.pick();
                     }, actualInterval);
                 } else {
-                    console.log('no task in queue, queue a main task');
+                    logger.info('no task in queue, queue a main task');
                     this.queue(new CommonTask(TaskType.MAIN))
                         .then(() => {
                             let offset = Date.now() - this._lastMainTaskExeTime;
@@ -112,6 +116,9 @@ export class TaskOrchestra {
             let task = await this._taskStore.pollFailedTask();
             if (task.retryCount > this._config.maxRetryCount) {
                 // drop task
+                logger.warn('drop_task', {
+                    task
+                });
                 return false;
             }
             let result = await this._scraper.executeTask(task);

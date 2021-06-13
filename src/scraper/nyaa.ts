@@ -23,12 +23,10 @@ import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { ConfigLoader, ItemStorage, TYPES } from '../types';
-import { AzureLogger } from '../utils/azure-logger';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
-
-const logger = AzureLogger.getInstance();
+import { logger } from '../utils/logger-factory';
 
 @injectable()
 export class NyaaScraper extends BaseScraper<number> {
@@ -48,7 +46,9 @@ export class NyaaScraper extends BaseScraper<number> {
             if (pageNo) {
                 listPageUrl += '/?p=' + pageNo;
             }
-            console.log(`Scrapping ${listPageUrl}`);
+            logger.info('execute_main_task', {
+                pageNo
+            });
             const resp = await Axios.get(listPageUrl);
 
             const $ = cheerio.load(resp.data);
@@ -78,8 +78,13 @@ export class NyaaScraper extends BaseScraper<number> {
             if (e.code !== 'ETIMEDOUT') {
                 captureException(e);
             }
-            logger.log('exception', e.stack, AzureLogger.ERROR, {line: '81'});
-            console.error(e.stack);
+            logger.warn('execute_main_task_exception', {
+                code: e.code,
+                error_message: e.message,
+                line: '80',
+                page_no: pageNo,
+                stack: e.stack
+            });
             return null;
         }
     }
@@ -88,7 +93,9 @@ export class NyaaScraper extends BaseScraper<number> {
         let statusCode = -1;
         try {
             const subTaskUrl = `${NyaaScraper._host}${item.uri}`;
-            console.log(`Scrapping ${subTaskUrl}`);
+            logger.info('execute_sub_task', {
+                item
+            });
             const resp = await Axios.get(subTaskUrl);
             statusCode = resp.status;
 
@@ -138,7 +145,13 @@ export class NyaaScraper extends BaseScraper<number> {
             } else {
                 statusCode = -1;
             }
-            logger.log('exception', e.stack, AzureLogger.ERROR, {line: '141'});
+            logger.warn('execute_sub_task_exception', {
+                code: e.code,
+                error_message: e.message,
+                item,
+                line: '149',
+                stack: e.stack
+            });
             if (statusCode !== 404 && e.code !== 'ETIMEDOUT') {
                 captureException(e);
             }
