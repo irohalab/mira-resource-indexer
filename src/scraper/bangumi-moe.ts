@@ -26,6 +26,7 @@ import { TaskOrchestra } from '../task/task-orchestra';
 import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
+import { logger } from '../utils/logger-factory';
 
 @injectable()
 export class BangumiMoe extends BaseScraper<string> {
@@ -38,7 +39,9 @@ export class BangumiMoe extends BaseScraper<string> {
     }
 
     public async executeMainTask(pageNo: number = 1): Promise<{items: Array<Item<string>>, hasNext: boolean}> {
-        console.log(`Scrapping ${BangumiMoe._host}/api/v2/torrent/page/${pageNo}`);
+        logger.info('execute_main_task', {
+            pageNo
+        });
         try {
             const resp = await Axios.get(`${BangumiMoe._host}/api/v2/torrent/page/${pageNo}`);
             const listData = resp.data as any;
@@ -56,14 +59,22 @@ export class BangumiMoe extends BaseScraper<string> {
             });
             return {hasNext: newIds.length === listData.torrents.length && newIds.length > 0, items};
         } catch (e) {
-            console.warn(e.stack);
+            logger.warn('execute_main_task_exception', {
+                code: e.code,
+                error_message: e.message,
+                line: '80',
+                page_no: pageNo,
+                stack: e.stack
+            });
             captureException(e);
         }
         return Promise.resolve(null);
     }
 
     public async executeSubTask(item: Item<string>): Promise<number> {
-        console.log(`Scrapping ${BangumiMoe._host}/api/v2/torrent/${item.id}`);
+        logger.info('execute_sub_task', {
+            item
+        });
         let statusCode = -1;
         try {
             const resp = await Axios.get(`${BangumiMoe._host}/api/v2/torrent/${item.id}`);
@@ -101,7 +112,13 @@ export class BangumiMoe extends BaseScraper<string> {
             } else {
                 statusCode = -1;
             }
-            console.warn(e.stack);
+            logger.warn('execute_sub_task_exception', {
+                code: e.code,
+                error_message: e.message,
+                item,
+                line: '115',
+                stack: e.stack
+            });
             captureException(e);
         }
         return statusCode;

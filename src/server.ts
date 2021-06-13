@@ -18,6 +18,7 @@ import { createServer, Server } from 'http';
 import { Container } from 'inversify';
 import { InversifyExpressServer } from 'inversify-express-utils';
 import { ConfigLoader } from './types';
+import { logger } from './utils/logger-factory';
 
 export class RESTServer {
     private _server: InversifyExpressServer;
@@ -31,7 +32,7 @@ export class RESTServer {
         const app = this._server.build();
         const httpServer = createServer(app);
         process.on('SIGINT', () => {
-            console.log('stopping REST server...');
+            logger.info('stopping REST server...');
             httpServer.close();
         });
         return httpServer.listen(this._config.serverPort, this._config.serverHost);
