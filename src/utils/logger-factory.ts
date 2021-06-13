@@ -16,7 +16,7 @@
 
 import { createLogger, format, transports } from 'winston';
 
-const isDebug = !!process.env.DEBUG;
+const isDebug = process.env.NODE_ENV === 'DEBUG';
 
 export const logger = createLogger({
     format: format.json(),
