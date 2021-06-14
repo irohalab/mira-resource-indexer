@@ -33,6 +33,7 @@ export interface Task {
 export class CommonTask implements Task {
     public id: number;
     public timestamp: number;
+    public retryCount?: number;
     constructor(public type: TaskType) {
         this.id = taskCount++;
         this.timestamp = Date.now();
