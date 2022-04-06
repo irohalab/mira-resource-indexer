@@ -16,9 +16,13 @@
 
 import parseTorrent = require('parse-torrent');
 import * as ParseTorrentFile from 'parse-torrent-file';
-import { readFileSync } from 'fs';
+import { promisify } from 'util';
+import { readFile } from 'fs';
+
+const readFilePromise = promisify(readFile);
 
 export async function getTorrentFiles(torrentPath: string) {
-    const torrent = parseTorrent(readFileSync(torrentPath)) as ParseTorrentFile.Instance;
+    const file = await readFilePromise(torrentPath);
+    const torrent = parseTorrent(file) as ParseTorrentFile.Instance;
     return torrent.files;
 }
