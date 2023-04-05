@@ -32,6 +32,13 @@ export async function getTorrentFiles(torrentPath: string) {
     return torrent.files;
 }
 
+export async function getMagnetUri(url: string) {
+    const torrentPath = await downloadFile(url);
+    const torrent = await readFilePromise(torrentPath);
+    const parsed = parseTorrent(torrent);
+    return parseTorrent.toMagnetURI(parsed);
+}
+
 export async function getMediaFiles(url: string) {
     const torrentPath = await downloadFile(url);
     const files = await getTorrentFiles(torrentPath);
