@@ -15,9 +15,14 @@
  */
 
 import parseTorrent = require('parse-torrent');
+import { readFile, promises } from 'fs';
 import * as ParseTorrentFile from 'parse-torrent-file';
+import { basename, extname } from 'path';
 import { promisify } from 'util';
-import { readFile } from 'fs';
+import { downloadFile } from '../utils/download';
+import { MediaFile } from '../entity/media-file';
+
+const { unlink } = promises;
 
 const readFilePromise = promisify(readFile);
 
@@ -25,4 +30,19 @@ export async function getTorrentFiles(torrentPath: string) {
     const file = await readFilePromise(torrentPath);
     const torrent = parseTorrent(file) as ParseTorrentFile.Instance;
     return torrent.files;
+}
+
+export async function getMediaFiles(url: string) {
+    const torrentPath = await downloadFile(url);
+    const files = await getTorrentFiles(torrentPath);
+    const mediaFiles = files.map(file => {
+        let mediaFile = new MediaFile();
+        mediaFile.size = file.length.toString();
+        mediaFile.path = file.path;
+        mediaFile.ext = extname(mediaFile.path);
+        mediaFile.name = basename(mediaFile.path, mediaFile.ext);
+        return mediaFile;
+    });
+    await unlink(torrentPath);
+    return mediaFiles;
 }

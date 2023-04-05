@@ -15,15 +15,11 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { basename, extname } from 'path';
 import { Browser, launch, Page } from 'puppeteer';
 import { resolve } from 'url';
-import { unlinkSync } from 'fs';
-import { downloadFile } from '../utils/download';
-import { getTorrentFiles } from '../utils/torrent-utils';
+import { getMediaFiles } from '../utils/torrent-utils';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
-import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
 import { TaskOrchestra } from '../task/task-orchestra';
@@ -242,18 +238,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 return anchor.getAttribute('href');
             }, btResourceElement);
 
-            item.files = [];
-            const filePath = await downloadFile(item.torrent_url);
-            const files = await getTorrentFiles(filePath);
-            files.forEach(file => {
-                let mediaFile = new MediaFile();
-                mediaFile.size = file.length.toString();
-                mediaFile.path = file.path;
-                mediaFile.ext = extname(mediaFile.path);
-                mediaFile.name = basename(mediaFile.path, mediaFile.ext);
-                item.files.push(mediaFile);
-            });
-            unlinkSync(filePath);
+            item.files = await getMediaFiles(item.torrent_url);
         } catch (e) {
             console.info(bodyStr);
             if (e.response) {
