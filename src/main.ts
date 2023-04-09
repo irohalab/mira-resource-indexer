@@ -20,6 +20,7 @@ import { ConfigManager } from './config';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
 import { NyaaScraper } from './scraper/nyaa';
+import { AcgRipScraper } from './scraper/acg-rip';
 import { RESTServer } from './server';
 import { DatabaseService } from './service/database-service';
 import { MongodbItemStore } from './storage/mongodb-item-store';
@@ -57,6 +58,10 @@ switch (config.mode) {
     case ConfigManager.NYAA:
         container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(NyaaScraper).inSingletonScope();
+        break;
+    case ConfigManager.ACG_RIP:
+        container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
+        container.bind<Scraper>(TYPES.Scraper).to(AcgRipScraper).inSingletonScope();
         break;
     default:
         throw new Error('Mode is not supported yet');

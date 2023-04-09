@@ -23,6 +23,7 @@ export class ConfigManager implements ConfigLoader {
     public static DMHY = 'dmhy';
     public static BANGUMI_MOE = 'bangumi_moe';
     public static NYAA = 'nyaa';
+    public static ACG_RIP = 'acg_rip';
     
     public static PG = 'postgres';
     public static MONGO = 'mongo';
