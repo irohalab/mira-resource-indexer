@@ -19,7 +19,7 @@ import { Browser, launch, Page } from 'puppeteer';
 import { resolve } from 'url';
 import { promises } from 'fs';
 import { downloadFile } from '../utils/download';
-import { getMediaFiles } from '../utils/torrent-utils';
+import { getTorrentInfo } from '../utils/torrent-utils';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
 import { Publisher } from '../entity/publisher';
@@ -243,7 +243,8 @@ export class DmhyScraper extends BaseScraper<number> {
             }, btResourceElement);
 
             const torrentPath = await downloadFile(item.torrent_url);
-            item.files = await getMediaFiles(torrentPath);
+            const info = await getTorrentInfo(torrentPath);
+            item.files = info.files;
             await unlink(torrentPath);
         } catch (e) {
             console.info(bodyStr);

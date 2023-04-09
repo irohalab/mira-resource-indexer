@@ -29,21 +29,23 @@ export async function getTorrentFiles(torrentPath: string) {
     return torrent.files;
 }
 
-export async function getMagnetUri(torrentPath: string) {
+export async function getTorrentInfo(torrentPath: string, withMagnet?: boolean) {
     const torrent = await readFilePromise(torrentPath);
     const parsed = parseTorrent(torrent);
-    return parseTorrent.toMagnetURI(parsed);
-}
 
-export async function getMediaFiles(torrentPath: string) {
+    let mediaFiles: MediaFile[];
+    let magnet_uri;
+    if (withMagnet) {
+        magnet_uri =  parseTorrent.toMagnetURI(parsed);
+    }
     const files = await getTorrentFiles(torrentPath);
-    const mediaFiles = files.map(file => {
-        let mediaFile = new MediaFile();
+    mediaFiles = files.map(file => {
+        const mediaFile = new MediaFile();
         mediaFile.size = file.length.toString();
         mediaFile.path = file.path;
         mediaFile.ext = extname(mediaFile.path);
         mediaFile.name = basename(mediaFile.path, mediaFile.ext);
         return mediaFile;
     });
-    return mediaFiles;
+    return { magnet_uri, files: mediaFiles };
 }

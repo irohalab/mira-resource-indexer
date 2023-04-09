@@ -25,7 +25,7 @@ import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { downloadFile } from '../utils/download';
 import { logger } from '../utils/logger-factory';
 import { captureException } from '../utils/sentry';
-import { getMagnetUri, getMediaFiles } from '../utils/torrent-utils';
+import { getTorrentInfo } from '../utils/torrent-utils';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
 
@@ -108,8 +108,9 @@ export class AcgRipScraper extends BaseScraper<number> {
             item.torrent_url = AcgRipScraper._host + panels.eq(0).find('.panel-body a.btn').attr('href');
  
             const torrentPath = await downloadFile(item.torrent_url);
-            item.magnet_uri = await getMagnetUri(torrentPath);
-            item.files = await getMediaFiles(torrentPath);
+            const info = await getTorrentInfo(torrentPath, true);
+            item.magnet_uri = info.magnet_uri;
+            item.files = info.files;
             await unlink(torrentPath);
 
             const team$ = sidePanel.eq(0).find('.panel-title-right a').last();
