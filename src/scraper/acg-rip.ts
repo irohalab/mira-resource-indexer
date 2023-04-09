@@ -44,34 +44,50 @@ export class AcgRipScraper extends BaseScraper<number> {
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Array<Item<number>>; hasNext: boolean; }> {
+        const ACG_RIP_TYPES = [
+            {id: 1, name: '动画'},
+            {id: 2, name: '日剧'},
+            // {id: 3, name: '综艺'},
+            {id: 4, name: '音乐'},
+            {id: 5, name: '合集'},
+            {id: 9, name: '其它'}
+        ];
+
         try {
-            let listPageUrl = AcgRipScraper._host;
-            if (pageNo) {
-                listPageUrl += `/page/${pageNo}`;
-            }
             logger.info('execute_main_task', { pageNo });
-            const resp = await Axios.get(listPageUrl);
+            const items: Array<Item<number>> = [];
 
-            const $ = cheerio.load(resp.data);
-            const trList = Array.from($('table.post-index > tbody > tr'));
-            let items: Array<Item<number>> = [];
-            trList.forEach(tr => {
-                const item = new Item<number>();
+            const getListPageItemsByType = async (type: {id: number, name: string}) => {
+                let listPageUrl = AcgRipScraper._host;
+                if (pageNo) {
+                    listPageUrl += `/${type.id}/page/${pageNo}`;
+                } else {
+                    listPageUrl += `/${type.id}`
+                }
+                const resp = await Axios.get(listPageUrl);
+                const $ = cheerio.load(resp.data);
+                const trList = Array.from($('table.post-index > tbody > tr'));
+                trList.forEach(tr => {
+                    const item = new Item<number>();
 
-                // type
-                item.type = new ItemType<number>();
-                item.type.id = 1;  // hard coded type 1 as anime
-                item.type.name = '动画';
+                    item.type = new ItemType<number>();
+                    item.type.id = type.id;
+                    item.type.name = type.name;
 
-                item.uri = $('td.title a', tr).last().attr('href').trim();
-                item.id = this.getIdFromUri(item.uri);
+                    item.uri = $('td.title a', tr).last().attr('href').trim();
+                    item.id = this.getIdFromUri(item.uri);
 
-                items.push(item);
-            });
-            let newIds = await this._store.filterItemNotStored(items.map(item => item.id));
-            let newItems = items.filter(item => {
+                    items.push(item);
+                });
+            }
+
+            await Promise.all(ACG_RIP_TYPES.map(type => getListPageItemsByType(type)));
+
+            const newIds = await this._store.filterItemNotStored(items.map(item => item.id));
+            const newItems = items.filter(item => {
                 return newIds.includes(item.id);
             });
+
             return { hasNext: newIds.length === items.length && newIds.length > 1, items: newItems };
         } catch (e) {
             if (e.code !== 'ETIMEDOUT') {
