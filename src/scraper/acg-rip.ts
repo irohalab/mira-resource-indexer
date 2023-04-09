@@ -16,6 +16,7 @@
 import Axios from 'axios';
 import { promises } from 'fs';
 import { inject, injectable } from 'inversify';
+import { promisify } from 'util';
 import { Item } from '../entity/Item';
 import { Team } from '../entity/Team';
 import { ItemType } from '../entity/item-type';
@@ -30,6 +31,7 @@ import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
 
 const { unlink }  = promises;
+const sleep = promisify(setTimeout);
 
 @injectable()
 export class AcgRipScraper extends BaseScraper<number> {
@@ -62,7 +64,7 @@ export class AcgRipScraper extends BaseScraper<number> {
                 if (pageNo) {
                     listPageUrl += `/${type.id}/page/${pageNo}`;
                 } else {
-                    listPageUrl += `/${type.id}`
+                    listPageUrl += `/${type.id}`;
                 }
                 const resp = await Axios.get(listPageUrl);
                 const $ = cheerio.load(resp.data);
@@ -79,9 +81,12 @@ export class AcgRipScraper extends BaseScraper<number> {
 
                     items.push(item);
                 });
-            }
+            };
 
-            await Promise.all(ACG_RIP_TYPES.map(type => getListPageItemsByType(type)));
+            for (const type of ACG_RIP_TYPES) {
+                await getListPageItemsByType(type);
+                await sleep(this._config.minInterval);
+            }
 
             const newIds = await this._store.filterItemNotStored(items.map(item => item.id));
             const newItems = items.filter(item => {
