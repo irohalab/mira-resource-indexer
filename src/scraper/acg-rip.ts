@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 import Axios from 'axios';
+import { promises } from 'fs';
 import { inject, injectable } from 'inversify';
 import { Item } from '../entity/Item';
-import { ItemType } from '../entity/item-type';
 import { Team } from '../entity/Team';
+import { ItemType } from '../entity/item-type';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { downloadFile } from '../utils/download';
 import { logger } from '../utils/logger-factory';
 import { captureException } from '../utils/sentry';
 import { getMagnetUri, getMediaFiles } from '../utils/torrent-utils';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
+
+const { unlink }  = promises;
 
 @injectable()
 export class AcgRipScraper extends BaseScraper<number> {
@@ -102,8 +106,11 @@ export class AcgRipScraper extends BaseScraper<number> {
             item.publisher.id = this.getPublisherIdFromUri(pubId);
             item.timestamp = new Date(Number(sidePanel.eq(0).find('time').attr('datetime')) * 1000);
             item.torrent_url = AcgRipScraper._host + panels.eq(0).find('.panel-body a.btn').attr('href');
-            item.magnet_uri = await getMagnetUri(item.torrent_url);
-            item.files = await getMediaFiles(item.torrent_url);
+ 
+            const torrentPath = await downloadFile(item.torrent_url);
+            item.magnet_uri = await getMagnetUri(torrentPath);
+            item.files = await getMediaFiles(torrentPath);
+            await unlink(torrentPath);
 
             const team$ = sidePanel.eq(0).find('.panel-title-right a').last();
             if (team$.text()) {
