@@ -17,6 +17,8 @@
 import { inject, injectable } from 'inversify';
 import { Browser, launch, Page } from 'puppeteer';
 import { resolve } from 'url';
+import { promises } from 'fs';
+import { downloadFile } from '../utils/download';
 import { getMediaFiles } from '../utils/torrent-utils';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
@@ -28,6 +30,8 @@ import { toUTCDate, trimDomain } from '../utils/normalize';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import { logger } from '../utils/logger-factory';
+
+const { unlink } = promises;
 
 const PROXY = process.env.HTTP_PROXY; // a http proxy for this
 const IS_DEBUG = process.env.NODE_ENV === 'debug';
@@ -238,7 +242,9 @@ export class DmhyScraper extends BaseScraper<number> {
                 return anchor.getAttribute('href');
             }, btResourceElement);
 
-            item.files = await getMediaFiles(item.torrent_url);
+            const torrentPath = await downloadFile(item.torrent_url);
+            item.files = await getMediaFiles(torrentPath);
+            await unlink(torrentPath);
         } catch (e) {
             console.info(bodyStr);
             if (e.response) {
