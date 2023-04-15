@@ -23,7 +23,7 @@ jobs:
         sentry-cli releases set-commits --auto $VERSION
 
     - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@master
+      uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: irohalab/mira-resource-indexer/indexer
         username: ${{ secrets.USERNAME }}

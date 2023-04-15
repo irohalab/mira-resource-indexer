@@ -15,15 +15,13 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { basename, extname } from 'path';
 import { Browser, launch, Page } from 'puppeteer';
 import { resolve } from 'url';
-import { unlinkSync } from 'fs';
+import { promises } from 'fs';
 import { downloadFile } from '../utils/download';
-import { getTorrentFiles } from '../utils/torrent-utils';
+import { getTorrentInfo } from '../utils/torrent-utils';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
-import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
 import { TaskOrchestra } from '../task/task-orchestra';
@@ -32,6 +30,8 @@ import { toUTCDate, trimDomain } from '../utils/normalize';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import { logger } from '../utils/logger-factory';
+
+const { unlink } = promises;
 
 const PROXY = process.env.HTTP_PROXY; // a http proxy for this
 const IS_DEBUG = process.env.NODE_ENV === 'debug';
@@ -242,18 +242,10 @@ export class DmhyScraper extends BaseScraper<number> {
                 return anchor.getAttribute('href');
             }, btResourceElement);
 
-            item.files = [];
-            const filePath = await downloadFile(item.torrent_url);
-            const files = await getTorrentFiles(filePath);
-            files.forEach(file => {
-                let mediaFile = new MediaFile();
-                mediaFile.size = file.length.toString();
-                mediaFile.path = file.path;
-                mediaFile.ext = extname(mediaFile.path);
-                mediaFile.name = basename(mediaFile.path, mediaFile.ext);
-                item.files.push(mediaFile);
-            });
-            unlinkSync(filePath);
+            const torrentPath = await downloadFile(item.torrent_url);
+            const info = await getTorrentInfo(torrentPath);
+            item.files = info.files;
+            await unlink(torrentPath);
         } catch (e) {
             console.info(bodyStr);
             if (e.response) {

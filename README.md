@@ -4,11 +4,11 @@ A part of Project Mira
 
 requirements: mongodb
 
-Indexer can be configured to different modes: dmhy, Bangumi.moe
+Indexer can be configured to different modes: dmhy, Bangumi.moe, nyaa, acg.rip
 
 ## Set environment variables
 
-- INDEXER_MODE what mode this indexer will work at. set `dmhy` or `bangumi_moe` or `nyaa`
+- INDEXER_MODE what mode this indexer will work at. set `dmhy` or `bangumi_moe` or `nyaa` or `acg_rip`
 - DB_HOST host for database instance, default is `mongo`
 - DB_PORT port for database, default is `27017`
 - DB_USER user for database access, default is `admin`
