@@ -58,3 +58,19 @@ services:
       SERVER_PORT: "4300"
       SENTRY_DSN: "${SENTRY_DSN}"
       APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"
+
+  acg_rip:
+    << : *web-common
+    command: node --title=acg_rip dist/main.js
+    ports:
+      - "4400:4400"
+    environment:
+      DB_HOST: "${DB_HOST-store}"
+      DB_PORT: "${DB_PORT-27017}"
+      DB_USER: "${DB_USER-admin}"
+      DB_PASS: "${DB_PASS-123456}"
+      INDEXER_MODE: "acg_rip"
+      DB_NAME: "acg_rip_indexer"
+      SERVER_PORT: "4400"
+      SENTRY_DSN: "${SENTRY_DSN}"
+      APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"
