@@ -24,9 +24,22 @@ jobs:
     - name: Test code format
       run: yarn lint
 
+    - name: prepare docker
+      uses: hoverkraft-tech/compose-action@v2.0.2
+      with:
+        compose-file: ./docker-compose.yml
+        services: |
+          mongo
+      env:
+        INDEXER_MODE: dmhy
+        DB_MODE: localhost
+        DB_PORT: 27017
+        DB_USER: admin
+        DB_NAME: dmhy_indexer
+        DB_PASS: 123456
+        
     - name: Unit test and code covergae
       run: |
-        docker-compose up -d mongo
         export INDEXER_MODE=dmhy
         export DB_MODE=localhost
         export DB_PORT=27017
