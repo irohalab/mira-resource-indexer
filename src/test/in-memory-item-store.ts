@@ -17,7 +17,7 @@
 import { injectable } from 'inversify';
 import { inspect } from 'util';
 import { Item } from '../entity/Item';
-import { ItemStorage } from '../types';
+import { ItemStorage } from '../TYPES_IDX';
 
 @injectable()
 export class InMemoryItemStore<T> implements ItemStorage<T> {

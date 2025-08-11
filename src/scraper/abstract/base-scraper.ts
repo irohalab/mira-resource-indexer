@@ -21,7 +21,7 @@ import { SubTask } from '../../task/sub-task';
 import { TaskOrchestra } from '../../task/task-orchestra';
 import { TaskStatus } from '../../task/task-status';
 import { Task, TaskType } from '../../task/task-types';
-import { ConfigLoader, ItemStorage, Scraper } from '../../types';
+import { ConfigLoader, ItemStorage, Scraper } from '../../TYPES_IDX';
 
 @injectable()
 export abstract class BaseScraper<T> implements Scraper {

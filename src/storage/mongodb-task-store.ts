@@ -20,10 +20,10 @@ import { DatabaseService } from '../service/database-service';
 import { MainTask } from '../task/main-task';
 import { SubTask } from '../task/sub-task';
 import { Task, TaskType } from '../task/task-types';
-import { ConfigLoader, TaskStorage, TYPES } from '../types';
+import { ConfigLoader, TaskQueue, TYPES_IDX } from '../TYPES_IDX';
 
 @injectable()
-export class MongodbTaskStore implements TaskStorage {
+export class MongodbTaskStore implements TaskQueue {
 
     private get db(): Db {
         return this._databaseService.db;
@@ -33,7 +33,7 @@ export class MongodbTaskStore implements TaskStorage {
     private _failedTaskCollectionName = 'failed_task';
 
     constructor(private _databaseService: DatabaseService,
-                @inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+                @inject(TYPES_IDX.ConfigLoader) private _config: ConfigLoader) {
         this._databaseService.checkCollection([this._taskCollectionName, this._failedTaskCollectionName]);
     }
 

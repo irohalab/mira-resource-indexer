@@ -18,12 +18,13 @@ import { Item } from './entity/Item';
 import { TaskStatus } from './task/task-status';
 import { Task } from './task/task-types';
 
-export const TYPES = {
+export const TYPES_IDX = {
     ConfigLoader: Symbol.for('ConfigLoader'),
     ItemStorage: Symbol.for('ItemStorage'),
     Scraper: Symbol.for('Scraper'),
     TaskStorage: Symbol.for('TaskStorage'),
-    TaskTimingFactory: Symbol.for('TaskTiming')
+    TaskTimingFactory: Symbol.for('TaskTiming'),
+    ThrottleStore: Symbol.for('ThrottleStore')
 };
 
 export interface ItemStorage<T> {
@@ -35,13 +36,18 @@ export interface ItemStorage<T> {
     searchItem(keyword: string): Promise<Array<Item<T>>>;
 }
 
-export interface TaskStorage {
+export interface TaskQueue {
     offerTask(task: Task): Promise<boolean>;
     pollTask(): Promise<Task>;
     offerFailedTask(task: Task): Promise<boolean>;
     pollFailedTask(): Promise<Task>;
     hasTask(): Promise<boolean>;
     hasFailedTask(): Promise<boolean>;
+}
+
+export interface ThrottleStore {
+    getLastMainTaskTime(): Promise<number>;
+    setLastMainTaskTime(): Promise<void>;
 }
 
 export interface Scraper {
@@ -74,3 +80,7 @@ export interface ConfigLoader {
     maxRetryCount: number; // max retry times for a task
     load(): void;
 }
+
+export const TASK_EXCHANGE = 'task_exchange';
+export const TASK_QUEUE = 'task_queue';
+export const TASK_ROUTING_KEY = 'task_routing_key';

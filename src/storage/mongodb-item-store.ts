@@ -18,7 +18,7 @@ import { inject, injectable } from 'inversify';
 import { Db } from 'mongodb';
 import { Item } from '../entity/Item';
 import { DatabaseService } from '../service/database-service';
-import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { escapeRegExp } from '../utils/normalize';
 
 @injectable()
@@ -30,7 +30,7 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
 
     private _collectionName: string = 'items';
 
-    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
+    constructor(@inject(TYPES_IDX.ConfigLoader) private _config: ConfigLoader,
                 private _databaseService: DatabaseService) {
         this._databaseService.checkCollection([this._collectionName]);
     }

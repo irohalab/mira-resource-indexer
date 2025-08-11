@@ -18,7 +18,7 @@ import { inject, injectable } from 'inversify';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { TaskStatus } from '../task/task-status';
 import { Task, TaskType } from '../task/task-types';
-import { Scraper } from '../types';
+import { Scraper } from '../TYPES_IDX';
 import { FakeTask } from './fake-task';
 
 export const MIN_INTERVAL = 10;

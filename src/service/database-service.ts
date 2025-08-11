@@ -16,7 +16,7 @@
 
 import { inject, injectable } from 'inversify';
 import { Db, MongoClient } from 'mongodb';
-import { ConfigLoader, TYPES } from '../types';
+import { ConfigLoader, TYPES_IDX } from '../TYPES_IDX';
 import { captureException } from '../utils/sentry';
 import { logger } from '../utils/logger-factory';
 
@@ -31,7 +31,7 @@ export class DatabaseService {
         return this._db;
     }
 
-    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+    constructor(@inject(TYPES_IDX.ConfigLoader) private _config: ConfigLoader) {
     }
 
     public async onEnd(): Promise<void> {

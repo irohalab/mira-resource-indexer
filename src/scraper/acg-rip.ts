@@ -22,7 +22,7 @@ import { Team } from '../entity/Team';
 import { ItemType } from '../entity/item-type';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { downloadFile } from '../utils/download';
 import { logger } from '../utils/logger-factory';
 import { captureException } from '../utils/sentry';
@@ -31,16 +31,16 @@ import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
 
 const { unlink }  = promises;
-const sleep = promisify(setTimeout);
+const sleep = promisify(setTimeout) as (t: number) => Promise<unknown>;
 
 @injectable()
 export class AcgRipScraper extends BaseScraper<number> {
     private static _host = 'https://acg.rip';
         
     constructor(
-        @inject(TYPES.ItemStorage) store: ItemStorage<number>,
+        @inject(TYPES_IDX.ItemStorage) store: ItemStorage<number>,
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
-        @inject(TYPES.ConfigLoader) config: ConfigLoader
+        @inject(TYPES_IDX.ConfigLoader) config: ConfigLoader
     ) {
         super(taskOrchestra, config, store);
     }

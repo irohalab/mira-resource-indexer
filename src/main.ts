@@ -27,47 +27,47 @@ import { MongodbItemStore } from './storage/mongodb-item-store';
 import { MongodbTaskStore } from './storage/mongodb-task-store';
 import { TaskOrchestra } from './task/task-orchestra';
 import { TaskTiming } from './task/task-timing';
-import { ConfigLoader, ItemStorage, Scraper, TaskStorage, TYPES } from './types';
+import { ConfigLoader, ItemStorage, Scraper, TaskQueue, TYPES_IDX } from './TYPES_IDX';
 import './rest-api/items-query';
 import { captureMessage } from './utils/sentry';
 import { logger } from './utils/logger-factory';
 
 /* Initialize container */
 const container = new Container();
-container.bind<ConfigLoader>(TYPES.ConfigLoader).to(ConfigManager).inSingletonScope();
-const config = container.get<ConfigLoader>(TYPES.ConfigLoader);
+container.bind<ConfigLoader>(TYPES_IDX.ConfigLoader).to(ConfigManager).inSingletonScope();
+const config = container.get<ConfigLoader>(TYPES_IDX.ConfigLoader);
 config.load();
 
 /* bind TaskStorage */
 container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
-container.bind<TaskStorage>(TYPES.TaskStorage).to(MongodbTaskStore).inSingletonScope();
+container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(MongodbTaskStore).inSingletonScope();
 
 /* bind TaskOrchestra */
-container.bind<interfaces.Factory<number>>(TYPES.TaskTimingFactory).toFactory<number>(TaskTiming);
+container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactory<number>(TaskTiming);
 container.bind<TaskOrchestra>(TaskOrchestra).toSelf().inTransientScope();
 
 switch (config.mode) {
     case ConfigManager.DMHY:
-        container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
-        container.bind<Scraper>(TYPES.Scraper).to(DmhyScraper).inSingletonScope();
+        container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
+        container.bind<Scraper>(TYPES_IDX.Scraper).to(DmhyScraper).inSingletonScope();
         break;
     case ConfigManager.BANGUMI_MOE:
-        container.bind<ItemStorage<string>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
-        container.bind<Scraper>(TYPES.Scraper).to(BangumiMoe).inSingletonScope();
+        container.bind<ItemStorage<string>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
+        container.bind<Scraper>(TYPES_IDX.Scraper).to(BangumiMoe).inSingletonScope();
         break;
     case ConfigManager.NYAA:
-        container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
-        container.bind<Scraper>(TYPES.Scraper).to(NyaaScraper).inSingletonScope();
+        container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
+        container.bind<Scraper>(TYPES_IDX.Scraper).to(NyaaScraper).inSingletonScope();
         break;
     case ConfigManager.ACG_RIP:
-        container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
-        container.bind<Scraper>(TYPES.Scraper).to(AcgRipScraper).inSingletonScope();
+        container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
+        container.bind<Scraper>(TYPES_IDX.Scraper).to(AcgRipScraper).inSingletonScope();
         break;
     default:
         throw new Error('Mode is not supported yet');
 }
 
-const scraper = container.get<Scraper>(TYPES.Scraper);
+const scraper = container.get<Scraper>(TYPES_IDX.Scraper);
 const databaseService = container.get<DatabaseService>(DatabaseService);
 
 // catches Ctrl+C event

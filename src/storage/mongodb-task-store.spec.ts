@@ -23,7 +23,7 @@ import { DatabaseService } from '../service/database-service';
 import { SubTask } from '../task/sub-task';
 import { TaskType } from '../task/task-types';
 import { FakeConfigManager } from '../test/fake-config';
-import { ConfigLoader, TaskStorage, TYPES } from '../types';
+import { ConfigLoader, TaskQueue, TYPES_IDX } from '../TYPES_IDX';
 import { MongodbTaskStore } from './mongodb-task-store';
 
 // noinspection DuplicatedCode
@@ -43,10 +43,10 @@ export class MongodbItemStoreSpec {
             fail('You must set the Environment Variable DB_NAME to avoid potential damage to default database');
         }
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<ConfigLoader>(TYPES_IDX.ConfigLoader).to(FakeConfigManager).inSingletonScope();
         this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
-        this._container.bind<TaskStorage>(TYPES.TaskStorage).to(MongodbTaskStore).inTransientScope();
-        this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
+        this._container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(MongodbTaskStore).inTransientScope();
+        this._config = this._container.get<ConfigLoader>(TYPES_IDX.ConfigLoader);
         this._config.load();
         // this._config.dbHost = 'mongo';
         this._config.dbPort = 27017;
@@ -57,7 +57,7 @@ export class MongodbItemStoreSpec {
         // Cast to PostgresStore<number>
         this._databaseService = await this._container.get<DatabaseService>(DatabaseService);
         await this._databaseService.onStart();
-        this._store = this._container.get<TaskStorage>(TYPES.TaskStorage) as MongodbTaskStore;
+        this._store = this._container.get<TaskQueue>(TYPES_IDX.TaskStorage) as MongodbTaskStore;
     }
 
     @Teardown

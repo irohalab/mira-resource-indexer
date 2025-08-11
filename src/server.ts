@@ -17,7 +17,7 @@
 import { createServer, Server } from 'http';
 import { Container } from 'inversify';
 import { InversifyExpressServer } from 'inversify-express-utils';
-import { ConfigLoader } from './types';
+import { ConfigLoader } from './TYPES_IDX';
 import { logger } from './utils/logger-factory';
 
 export class RESTServer {

@@ -22,7 +22,7 @@ import { ItemType } from '../entity/item-type';
 import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
@@ -33,9 +33,9 @@ export class NyaaScraper extends BaseScraper<number> {
     private static _host = 'https://nyaa.si';
 
     constructor(
-        @inject(TYPES.ItemStorage) store: ItemStorage<number>,
+        @inject(TYPES_IDX.ItemStorage) store: ItemStorage<number>,
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
-        @inject(TYPES.ConfigLoader) config: ConfigLoader
+        @inject(TYPES_IDX.ConfigLoader) config: ConfigLoader
     ) {
         super(taskOrchestra, config, store);
     }

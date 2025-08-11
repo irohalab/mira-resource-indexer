@@ -15,34 +15,86 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { ConfigLoader, Scraper, TaskStorage, TYPES } from '../types';
+import {
+    ConfigLoader,
+    Scraper,
+    TASK_EXCHANGE,
+    TASK_QUEUE,
+    TASK_ROUTING_KEY,
+    TaskQueue,
+    ThrottleStore,
+    TYPES_IDX
+} from '../TYPES_IDX';
 import { TaskStatus } from './task-status';
 import { CommonTask, Task, TaskType } from './task-types';
-import Timeout = NodeJS.Timeout;
 import { logger } from '../utils/logger-factory';
+import { MQMessage, RabbitMQService, TYPES } from '@irohalab/mira-shared';
+import { promisify } from 'util';
+import Timeout = NodeJS.Timeout;
+
+const sleep = promisify(setTimeout) as (t: number) => Promise<unknown>;
 
 @injectable()
 export class TaskOrchestra {
     private _timerId: Timeout;
     private _lastMainTaskExeTime  = 0;
     private _scraper: Scraper;
+    private _lastExeTime = 0;
 
-    constructor(@inject(TYPES.ConfigLoader) private _config: ConfigLoader,
-                @inject(TYPES.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number,
-                @inject(TYPES.TaskStorage) private _taskStore: TaskStorage) {
+    private readonly _exchangeName: string;
+
+    constructor(@inject(TYPES_IDX.ConfigLoader) private _config: ConfigLoader,
+                @inject(TYPES_IDX.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number,
+                @inject(TYPES.RabbitMQService) private _mqService: RabbitMQService,
+                @inject(TYPES_IDX.TaskStorage) private _taskStore: TaskQueue,
+                @inject(TYPES_IDX.ThrottleStore) private _throttleStore: ThrottleStore) {
+        this._exchangeName = `${TASK_EXCHANGE}_${this._config.mode}`;
     }
 
-    public start(scraper: Scraper) {
+    public async start(scraper: Scraper): Promise<void> {
+        let actualInterval = this._taskTimingFactory(this._config.minInterval);
         this._scraper = scraper;
-        this.pick();
+        await this.checkMainTask(actualInterval);
+        await this._mqService.initPublisher(this._exchangeName, 'direct', TASK_ROUTING_KEY);
+        await this._mqService.initConsumer(this._exchangeName, 'direct', TASK_QUEUE, TASK_ROUTING_KEY);
+        await this._mqService.consume(TASK_QUEUE, async (msg: MQMessage) => {
+            const task = msg as Task;
+            const currentTime = Date.now();
+            if (currentTime < this._lastExeTime + actualInterval) {
+                await sleep(2000);
+                return false;
+            }
+            let result = await this._scraper.executeTask(task);
+            this._lastExeTime = Date.now();
+            if (result === TaskStatus.NeedRetry) {
+                return false;
+            } else if (result === TaskStatus.Success && task.type === TaskType.MAIN) {
+                this._lastMainTaskExeTime = Date.now();
+            }
+            return true;
+        });
     }
 
     public async queue(task: Task): Promise<void> {
-        await this._taskStore.offerTask(task);
+        await this._mqService.publish(this._exchangeName, TASK_ROUTING_KEY, task);
     }
 
     public stop() {
         clearTimeout(this._timerId);
+    }
+
+    private async checkMainTask(actualInterval: number): Promise<void> {
+        const lastMainTaskTime = this._throttleStore.getLastMainTaskTime();
+        const currentTime = Date.now();
+        const delta = currentTime - lastMainTaskTime;
+        if (delta >= this._config.minCheckInterval && currentTime >= this._lastExeTime + actualInterval) {
+            this._lastExeTime = currentTime;
+            await this._throttleStore.setLastMainTaskTime();
+            await this._scraper.executeTask(new CommonTask(TaskType.MAIN));
+        }
+        this._timerId = setTimeout(async () => {
+            await this.checkMainTask(actualInterval);
+        }, actualInterval);
     }
 
     private pick(): void {

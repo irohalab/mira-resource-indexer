@@ -20,7 +20,7 @@ import { FakeConfigManager } from '../test/fake-config';
 import { FakeResource, FakeScraper, MIN_INTERVAL } from '../test/fake-scraper';
 import { InMemoryTaskStore } from '../test/in-memory-task-store';
 import { MockTaskTiming } from '../test/mock-task-timing';
-import { ConfigLoader, Scraper, TaskStorage, TYPES } from '../types';
+import { ConfigLoader, Scraper, TaskQueue, TYPES_IDX } from '../TYPES_IDX';
 import { TaskOrchestra } from './task-orchestra';
 
 @TestFixture('TaskOrchestra test spec')
@@ -32,12 +32,12 @@ export class TaskOrchestraSpec {
     @SetupFixture
     public setupFixture() {
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
-        this._container.bind<interfaces.Factory<number>>(TYPES.TaskTimingFactory).toFactory<number>(MockTaskTiming);
-        this._container.bind<TaskStorage>(TYPES.TaskStorage).to(InMemoryTaskStore).inSingletonScope();
+        this._container.bind<ConfigLoader>(TYPES_IDX.ConfigLoader).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactory<number>(MockTaskTiming);
+        this._container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(InMemoryTaskStore).inSingletonScope();
         this._container.bind<TaskOrchestra>(TaskOrchestra).toSelf();
-        this._container.bind<Scraper>(TYPES.Scraper).to(FakeScraper).inTransientScope();
-        this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
+        this._container.bind<Scraper>(TYPES_IDX.Scraper).to(FakeScraper).inTransientScope();
+        this._config = this._container.get<ConfigLoader>(TYPES_IDX.ConfigLoader);
         this._config.load();
         this._config.minCheckInterval = MIN_INTERVAL * 3;
         this._config.minInterval = MIN_INTERVAL;
@@ -45,7 +45,7 @@ export class TaskOrchestraSpec {
 
     @Setup
     public async initTest() {
-        this._scraper = this._container.get<FakeScraper>(TYPES.Scraper);
+        this._scraper = this._container.get<FakeScraper>(TYPES_IDX.Scraper);
 
         let fakeResources: FakeResource[] = [];
         for (let i = 1; i <= 5; i++) {

@@ -5,8 +5,7 @@
     "clean:dist": "rimraf dist/*",
     "build": "npm run clean:dist && tsc && cp package.json dist",
     "prod": "node dist/main.js",
-    "start": "npm run build && concurrently \"tsc -w\" \"npm run watch\"",
-    "watch": "sleep 3 && nodemon --watch dist dist/main.js",
+    "start": "ts-node src/main.ts",
     "test:unit": "alsatian src/**/*.spec.ts",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "lint:fix": "tslint --fix -c tslint.json 'src/**/*.ts'",
@@ -14,7 +13,8 @@
     "check-coverage": "nyc npm run test"
   },
   "dependencies": {
-    "@sentry/node": "5.10.2",
+    "@irohalab/mira-shared": "^3.4.1",
+    "@sentry/node": "^7.49.0",
     "applicationinsights": "^1.8.7",
     "axios": "^0.26.1",
     "cheerio": "^1.0.0-rc.3",
@@ -22,12 +22,13 @@
     "inversify": "^5.0.1",
     "inversify-express-utils": "^6.3.2",
     "mongodb": "^3.3.2",
+    "nanoid": "^4.0.2",
     "parse-torrent": "^9.1.5",
     "pg": "^7.7.1",
     "puppeteer": "^1.11.0",
     "reflect-metadata": "^0.1.12",
     "saslprep": "^1.0.3",
-    "typescript": "^3.2.1",
+    "typescript": "^5.0.4",
     "winston": "^3.3.3"
   },
   "devDependencies": {
@@ -35,7 +36,7 @@
     "@types/cheerio": "^0.22.16",
     "@types/express": "^4.17.2",
     "@types/mongodb": "^3.3.6",
-    "@types/node": "^10.12.12",
+    "@types/node": "^16.9.1",
     "@types/parse-torrent": "^5.8.4",
     "@types/pg": "^7.4.11",
     "@types/puppeteer": "^1.11.0",
@@ -44,7 +45,8 @@
     "nodemon": "^2.0.4",
     "nyc": "^14.1.1",
     "rimraf": "^2.6.2",
-    "tslib": "^1.9.3",
+    "ts-node": "^10.9.1",
+    "tslib": "^2.5.0",
     "tslint": "^5.12.1"
   },
   "resolutions": {

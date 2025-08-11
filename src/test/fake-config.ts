@@ -15,7 +15,7 @@
  */
 
 import { injectable } from 'inversify';
-import { ConfigLoader } from '../types';
+import { ConfigLoader } from '../TYPES_IDX';
 
 @injectable()
 export class FakeConfigManager implements ConfigLoader {

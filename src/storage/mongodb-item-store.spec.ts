@@ -21,7 +21,7 @@ import { MongoClient } from 'mongodb';
 import { DatabaseService } from '../service/database-service';
 import { FakeConfigManager } from '../test/fake-config';
 import { items } from '../test/test-samples';
-import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { MongodbItemStore } from './mongodb-item-store';
 
 @TestFixture('MongodbStore test spec')
@@ -39,10 +39,10 @@ export class MongodbItemStoreSpec {
             fail('You must set the Environment Variable DB_NAME to avoid potential damage to default database');
         }
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES.ConfigLoader).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<ConfigLoader>(TYPES_IDX.ConfigLoader).to(FakeConfigManager).inSingletonScope();
         this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
-        this._container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inTransientScope();
-        this._config = this._container.get<ConfigLoader>(TYPES.ConfigLoader);
+        this._container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inTransientScope();
+        this._config = this._container.get<ConfigLoader>(TYPES_IDX.ConfigLoader);
         this._config.load();
         // this._config.dbHost = 'mongo';
         this._config.dbPort = 27017;
@@ -53,7 +53,7 @@ export class MongodbItemStoreSpec {
         // Cast to PostgresStore<number>
         this._databaseService = await this._container.get<DatabaseService>(DatabaseService);
         await this._databaseService.onStart();
-        this._store = this._container.get<ItemStorage<number>>(TYPES.ItemStorage) as MongodbItemStore<number>;
+        this._store = this._container.get<ItemStorage<number>>(TYPES_IDX.ItemStorage) as MongodbItemStore<number>;
     }
 
     @Teardown
