@@ -37,7 +37,10 @@ export function trimDomain(uri: string): string | null {
  * @returns {Date}
  */
 export function toUTCDate(timestamp: string, timezone: number): Date {
-    const match = timestamp.match(/(\d{4})[/-](\d{2})[/-](\d{2})\s(\d{1,2}):(\d{1,2})/);
+    if (!timestamp) {
+        return new Date();
+    }
+    const match = timestamp.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})\s(\d{1,2}):(\d{1,2})/);
     let year = parseInt(match[1], 10);
     let month = parseInt(match[2], 10) - 1;
     let day = parseInt(match[3], 10);

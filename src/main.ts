@@ -31,6 +31,7 @@ import { ConfigLoader, ItemStorage, Scraper, TaskStorage, TYPES } from './types'
 import './rest-api/items-query';
 import { captureMessage } from './utils/sentry';
 import { logger } from './utils/logger-factory';
+import { MikananiMe } from './scraper/mikanani-me';
 
 /* Initialize container */
 const container = new Container();
@@ -62,6 +63,10 @@ switch (config.mode) {
     case ConfigManager.ACG_RIP:
         container.bind<ItemStorage<number>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
         container.bind<Scraper>(TYPES.Scraper).to(AcgRipScraper).inSingletonScope();
+        break;
+    case ConfigManager.MIKANANI:
+        container.bind<ItemStorage<string>>(TYPES.ItemStorage).to(MongodbItemStore).inSingletonScope();
+        container.bind<Scraper>(TYPES.Scraper).to(MikananiMe).inSingletonScope();
         break;
     default:
         throw new Error('Mode is not supported yet');
