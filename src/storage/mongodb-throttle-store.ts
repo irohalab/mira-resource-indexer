@@ -15,17 +15,21 @@
  */
 
 import { DatabaseService } from '../service/database-service';
-import { inject } from 'inversify';
-import { ConfigLoader, ThrottleStore, TYPES_IDX } from '../TYPES_IDX';
+import { inject, injectable } from 'inversify';
+import { ThrottleStore } from '../TYPES_IDX';
 import { Db } from 'mongodb';
+import { TYPES } from '@irohalab/mira-shared';
+import { ConfigManager } from '../utils/config-manager';
 
 const MAIN_TASK_RECORD_NAME = 'MainTask';
+const FAILED_TASK_RECORD_NAME = 'FailedTask';
 
 interface ThrottleRecord {
     name: string;
     timestamp: number;
 }
 
+@injectable()
 export class MongodbThrottleStore implements ThrottleStore {
 
     private get db(): Db {
@@ -35,22 +39,33 @@ export class MongodbThrottleStore implements ThrottleStore {
     private _throttleCollectionName = 'throttle';
 
     constructor(private _databaseService: DatabaseService,
-                @inject(TYPES_IDX.ConfigLoader) private _config: ConfigLoader) {
+                @inject(TYPES.ConfigManager) private _config: ConfigManager) {
         this._databaseService.checkCollection([this._throttleCollectionName]);
     }
 
-    public async getLastMainTaskTime(): Promise<number> {
-        const record = await this.db.collection(this._throttleCollectionName).findOne({name: MAIN_TASK_RECORD_NAME});
-        if (record) {
-            const mainTaskRecord = record.value as ThrottleRecord;
-            return mainTaskRecord.timestamp;
-        }
-        return 0;
+    public getLastMainTaskTime(): Promise<number> {
+        return this.getLastTaskTime(MAIN_TASK_RECORD_NAME);
     }
 
     public async setLastMainTaskTime(): Promise<void> {
-        await this.db.collection(this._throttleCollectionName).findOneAndUpdate({
-            name: MAIN_TASK_RECORD_NAME
-        }, {timestamp: Date.now()}, {upsert: true});
+        await this.setLastTaskTime(MAIN_TASK_RECORD_NAME);
+    }
+
+    public getLastFailedTaskTime(): Promise<number> {
+        return this.getLastTaskTime(FAILED_TASK_RECORD_NAME);
+    }
+
+    public async setLastFailedTaskTime(): Promise<void> {
+        await this.setLastTaskTime(FAILED_TASK_RECORD_NAME);
+    }
+
+    public async getLastTaskTime(name: string): Promise<number> {
+        const record = await this.db.collection<{timestamp: number}>(this._throttleCollectionName).findOne({name});
+        return record ? record.timestamp : 0;
+    }
+
+    public async setLastTaskTime(name: string): Promise<void> {
+        await this.db.collection(this._throttleCollectionName).findOneAndUpdate({name},
+            {$set: {timestamp: Date.now()}}, {upsert: true});
     }
 }

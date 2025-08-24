@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import { Container, interfaces } from 'inversify';
 import 'reflect-metadata';
-import { ConfigManager } from './config';
+import { Container, interfaces } from 'inversify';
 import { BangumiMoe } from './scraper/bangumi-moe';
 import { DmhyScraper } from './scraper/dmhy';
 import { NyaaScraper } from './scraper/nyaa';
@@ -27,39 +26,58 @@ import { MongodbItemStore } from './storage/mongodb-item-store';
 import { MongodbTaskStore } from './storage/mongodb-task-store';
 import { TaskOrchestra } from './task/task-orchestra';
 import { TaskTiming } from './task/task-timing';
-import { ConfigLoader, ItemStorage, Scraper, TaskQueue, TYPES_IDX } from './TYPES_IDX';
+import { EventLogStore, ItemStorage, Scraper, TaskQueue, ThrottleStore, TYPES_IDX } from './TYPES_IDX';
 import './rest-api/items-query';
-import { captureMessage } from './utils/sentry';
 import { logger } from './utils/logger-factory';
+import { MongodbThrottleStore } from './storage/mongodb-throttle-store';
+import { RabbitMQService, Sentry, SentryImpl, TYPES } from '@irohalab/mira-shared';
+import { RascalImpl } from '@irohalab/mira-shared/services/RascalImpl';
+import { ConfigManagerImpl } from './utils/config-manager-impl';
+import { ACG_RIP, BANGUMI_MOE, ConfigManager, DMHY, NYAA } from './utils/config-manager';
+import { hostname } from 'os';
+import { MongodbEventLogStore } from './storage/mongodb-event-log-store';
 
 /* Initialize container */
 const container = new Container();
-container.bind<ConfigLoader>(TYPES_IDX.ConfigLoader).to(ConfigManager).inSingletonScope();
-const config = container.get<ConfigLoader>(TYPES_IDX.ConfigLoader);
-config.load();
+container.bind<ConfigManager>(TYPES.ConfigManager).to(ConfigManagerImpl).inSingletonScope();
+
+const config = container.get<ConfigManager>(TYPES.ConfigManager);
+config.prepare();
+
+// tslint:disable-next-line
+const { version } = require('../package.json');
+container.bind<Sentry>(TYPES.Sentry).to(SentryImpl).inSingletonScope();
+const sentry = container.get<Sentry>(TYPES.Sentry);
+
+sentry.setup(`${config.getMode()}_${hostname()}`, 'indexer', version);
 
 /* bind TaskStorage */
 container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
 container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(MongodbTaskStore).inSingletonScope();
+container.bind<ThrottleStore>(TYPES_IDX.ThrottleStore).to(MongodbThrottleStore).inSingletonScope();
+container.bind<EventLogStore>(TYPES_IDX.EventLogStore).to(MongodbEventLogStore).inSingletonScope();
+
+/* bind message queue */
+container.bind<RabbitMQService>(TYPES.RabbitMQService).to(RascalImpl).inSingletonScope();
 
 /* bind TaskOrchestra */
 container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactory<number>(TaskTiming);
 container.bind<TaskOrchestra>(TaskOrchestra).toSelf().inTransientScope();
 
-switch (config.mode) {
-    case ConfigManager.DMHY:
+switch (config.getMode()) {
+    case DMHY:
         container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
         container.bind<Scraper>(TYPES_IDX.Scraper).to(DmhyScraper).inSingletonScope();
         break;
-    case ConfigManager.BANGUMI_MOE:
+    case BANGUMI_MOE:
         container.bind<ItemStorage<string>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
         container.bind<Scraper>(TYPES_IDX.Scraper).to(BangumiMoe).inSingletonScope();
         break;
-    case ConfigManager.NYAA:
+    case NYAA:
         container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
         container.bind<Scraper>(TYPES_IDX.Scraper).to(NyaaScraper).inSingletonScope();
         break;
-    case ConfigManager.ACG_RIP:
+    case ACG_RIP:
         container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
         container.bind<Scraper>(TYPES_IDX.Scraper).to(AcgRipScraper).inSingletonScope();
         break;
@@ -83,7 +101,7 @@ process.on('SIGINT', async () => {
     await scraper.start();
 })();
 
-captureMessage(`starting ${config.mode} scraper, REST service listening ${config.serverHost}:${config.serverPort}`);
+sentry.capture(`starting ${config.getMode()} scraper, REST service listening ${config.getServerHost()}:${config.getServerPort()}`);
 
 const server = new RESTServer(container, config);
 server.start();

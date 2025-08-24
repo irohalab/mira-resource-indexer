@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-import { injectable } from 'inversify';
-import { ConfigManager } from '../utils/config-manager';
 import { MikroORMOptions } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/knex';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { ConfigManager } from './config-manager';
+import { injectable } from 'inversify';
 import { Options } from 'amqplib';
+import * as process from 'node:process';
 
 @injectable()
-export class FakeConfigManager implements ConfigManager {
-    minInterval!: number;
-    minCheckInterval!: number;
-    dbPort!: number;
-
+export class ConfigManagerImpl implements ConfigManager {
+    prepare(): void {
+        if (!this.getMode()) {
+            throw new Error('No mode specified!');
+        }
+    }
     getMode(): string {
         return process.env.INDEXER_MODE;
     }
@@ -37,7 +39,7 @@ export class FakeConfigManager implements ConfigManager {
         return process.env.DB_HOST || 'localhost';
     }
     getDbPort(): number {
-        return this.dbPort || parseInt(process.env.DB_PORT, 10) || 27017;
+        return parseInt(process.env.DB_PORT, 10) || 27017;
     }
     getDbUser(): string {
         return process.env.DB_USER || process.env.USER;
@@ -62,10 +64,13 @@ export class FakeConfigManager implements ConfigManager {
         return parseInt(process.env.SERVER_PORT, 10) || 35120;
     }
     getMinInterval(): number {
-        return this.minInterval || parseInt(process.env.MIN_INTERVAL, 10) || 10;
+        return parseInt(process.env.MIN_INTERVAL, 10) || 10000;
     }
     getMinCheckInterval(): number {
-        return this.minCheckInterval || parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60);
+        return parseInt(process.env.MIN_CHECK_INTERVAL, 10) || (15 * 60 * 1000);
+    }
+    getMinFailedTaskCheckInterval(): number {
+        return parseInt(process.env.MIN_FAILED_TASK_CHECK_INTERVAL, 10) || (60 * 1000);
     }
     getMaxPageNo(): number {
         return parseInt(process.env.MAX_PAGE_NO, 10) || 5;
@@ -76,16 +81,21 @@ export class FakeConfigManager implements ConfigManager {
     getMaxRetryCount(): number {
         return parseInt(process.env.MAX_RETRY_COUNT, 10) || 5;
     }
-    prepare(): void {
-        if (!this.getMode()) {
-            throw new Error('No mode specified!');
+    amqpConfig(): Options.Connect {
+        return {
+            hostname: process.env.AMQP_HOST || 'localhost',
+            protocol: 'amqp',
+            port: process.env.AMQP_PORT ? parseInt(process.env.AMQP_PORT, 10) : 5672,
+            username: process.env.AMQP_USER || 'guest',
+            password: process.env.AMQP_PASS || 'guest',
+            locale: 'en_US',
+            frameMax: 0,
+            heartbeat: 0,
+            vhost: '/'
         }
     }
-    amqpConfig(): Options.Connect {
-        throw new Error('Method not implemented.');
-    }
     amqpServerUrl(): string {
-        throw new Error('Method not implemented.');
+        return process.env.AMQP_URL;
     }
     databaseConfig(): MikroORMOptions<PostgreSqlDriver, SqlEntityManager<PostgreSqlDriver>> {
         throw new Error('Method not implemented.');

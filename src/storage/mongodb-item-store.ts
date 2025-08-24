@@ -18,8 +18,10 @@ import { inject, injectable } from 'inversify';
 import { Db } from 'mongodb';
 import { Item } from '../entity/Item';
 import { DatabaseService } from '../service/database-service';
-import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
+import { ItemStorage } from '../TYPES_IDX';
 import { escapeRegExp } from '../utils/normalize';
+import { TYPES } from '@irohalab/mira-shared';
+import { ConfigManager } from '../utils/config-manager';
 
 @injectable()
 export class MongodbItemStore<T> implements ItemStorage<T> {
@@ -30,7 +32,7 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
 
     private _collectionName: string = 'items';
 
-    constructor(@inject(TYPES_IDX.ConfigLoader) private _config: ConfigLoader,
+    constructor(@inject(TYPES.ConfigManager) private _config: ConfigManager,
                 private _databaseService: DatabaseService) {
         this._databaseService.checkCollection([this._collectionName]);
     }
@@ -63,18 +65,18 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
         return Promise.resolve(true);
     }
 
-    public searchItem(keyword: string): Promise<Array<Item<T>>> {
+    public searchItem(keyword: string): Promise<Item<T>[]> {
         let rgxArr = keyword.trim().split(/\s+/);
         if (rgxArr.length === 0) {
             return Promise.resolve([]);
         }
         let rgx = rgxArr.map(s => escapeRegExp(s)).join('.*?');
-        const cursor = this.db.collection(this._collectionName).find({
+        const cursor = this.db.collection<Item<T>>(this._collectionName).find({
             title: {
                 $options: 'i',
                 $regex: rgx
             }
-        }).sort({ timestamp: -1 }).limit(this._config.maxSearchCount);
+        }).sort({ timestamp: -1 }).limit(this._config.getMaxSearchCount());
         return Promise.resolve(cursor.toArray());
     }
 }

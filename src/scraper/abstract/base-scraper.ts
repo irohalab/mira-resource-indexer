@@ -14,26 +14,31 @@
  * limitations under the License.
  */
 
-import { injectable } from 'inversify';
+import { ProtocolError, TimeoutError } from 'puppeteer';
 import { Item } from '../../entity/Item';
 import { MainTask } from '../../task/main-task';
 import { SubTask } from '../../task/sub-task';
 import { TaskOrchestra } from '../../task/task-orchestra';
 import { TaskStatus } from '../../task/task-status';
 import { Task, TaskType } from '../../task/task-types';
-import { ConfigLoader, ItemStorage, Scraper } from '../../TYPES_IDX';
+import { EventLogStore, ItemStorage, Scraper } from '../../TYPES_IDX';
+import { ConfigManager } from '../../utils/config-manager';
+import { logger } from '../../utils/logger-factory';
+import { Sentry } from '@irohalab/mira-shared';
+import { AxiosError } from 'axios';
 
-@injectable()
 export abstract class BaseScraper<T> implements Scraper {
     protected className: string;
 
     protected constructor(protected _taskOrchestra: TaskOrchestra,
-                          protected _config: ConfigLoader,
-                          protected _store: ItemStorage<T>) {
+                          protected _config: ConfigManager,
+                          protected _store: ItemStorage<T>,
+                          protected _eventLogStore: EventLogStore,
+                          protected _sentry: Sentry) {
         this.className = this.constructor.name;
     }
 
-    public abstract executeMainTask(pageNo?: number): Promise<{items: Array<Item<T>>, hasNext: boolean}>;
+    public abstract executeMainTask(pageNo?: number): Promise<{items: Item<T>[], hasNext: boolean}>;
     public abstract executeSubTask(item: Item<T>): Promise<number>;
     public async executeTask(task: Task): Promise<TaskStatus> {
         if (task.type === TaskType.MAIN) {
@@ -49,9 +54,9 @@ export abstract class BaseScraper<T> implements Scraper {
             for (let item of result.items) {
                 await this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
             }
-            if (result.hasNext && (task as MainTask).pageNo < this._config.maxPageNo) {
+            if (result.hasNext && (task as unknown as MainTask).pageNo < this._config.getMaxPageNo()) {
                 let newTask = new MainTask(TaskType.MAIN);
-                let previousPageNo = (task as MainTask).pageNo;
+                let previousPageNo = (task as unknown as MainTask).pageNo;
                 if (previousPageNo) {
                     newTask.pageNo = previousPageNo + 1;
                 } else {
@@ -74,11 +79,32 @@ export abstract class BaseScraper<T> implements Scraper {
     }
 
     public async start(): Promise<any> {
-        await this._taskOrchestra.queue(new MainTask(TaskType.MAIN));
-        this._taskOrchestra.start(this);
+        // await this._taskOrchestra.queue(new MainTask(TaskType.MAIN));
+        await this._taskOrchestra.start(this);
     }
 
     public async end(): Promise<any> {
         this._taskOrchestra.stop();
+    }
+
+    protected async handleTimeout(e: Error | AxiosError): Promise<void> {
+        if ((e instanceof AxiosError && e.code === 'ETIMEDOUT')
+            || e instanceof TimeoutError) {
+            try {
+                await this._eventLogStore.putEventLog('TimeoutError', 'error');
+            } catch (error) {
+                logger.error('Error while trying to save event', e);
+                this._sentry.capture(error);
+            }
+        } else if (e instanceof AxiosError && e.status === 404) {
+            try {
+                await this._eventLogStore.putEventLog('NotFoundError', 'error');
+            } catch (error) {
+                logger.error('Error while trying to save event', e);
+                this._sentry.capture(error);
+            }
+        } else {
+            this._sentry.capture(e);
+        }
     }
 }

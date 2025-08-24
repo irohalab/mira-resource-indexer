@@ -15,10 +15,10 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { Db, MongoClient } from 'mongodb';
-import { ConfigLoader, TYPES_IDX } from '../TYPES_IDX';
-import { captureException } from '../utils/sentry';
+import { CollectionInfo, Db, MongoClient } from 'mongodb';
 import { logger } from '../utils/logger-factory';
+import { Sentry, TYPES } from '@irohalab/mira-shared';
+import { ConfigManager } from '../utils/config-manager';
 
 @injectable()
 export class DatabaseService {
@@ -31,7 +31,8 @@ export class DatabaseService {
         return this._db;
     }
 
-    constructor(@inject(TYPES_IDX.ConfigLoader) private _config: ConfigLoader) {
+    constructor(@inject(TYPES.ConfigManager) private _config: ConfigManager,
+                @inject(TYPES.Sentry) private _sentry: Sentry) {
     }
 
     public async onEnd(): Promise<void> {
@@ -39,11 +40,11 @@ export class DatabaseService {
     }
 
     public async onStart(): Promise<void> {
-        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
-            this._config.dbHost
-            }:${this._config.dbPort}?authSource=${this._config.authSource}`;
-        this._client = await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
-        this._db = this._client.db(this._config.dbName);
+        const url = `mongodb://${this._config.getDbUser()}:${this._config.getDbPass()}@${
+            this._config.getDbHost()
+            }:${this._config.getDbPort()}?authSource=${this._config.getAuthSource()}`;
+        this._client = await MongoClient.connect(url);
+        this._db = this._client.db(this._config.getDbName());
         await this._doCheckCollection();
         return Promise.resolve();
     }
@@ -69,33 +70,34 @@ export class DatabaseService {
             logger.error('transaction_error', {
                 stack: e.stack
             });
-            captureException(e);
+            this._sentry.capture(e);
         } finally {
             if (session != null) {
-                session.endSession();
+                await session.endSession();
             }
         }
     }
 
     private async _doCheckCollection(): Promise<void> {
         let collectionNames = this._collectionNames;
-        let existCollections: string[];
+        let existCollections: CollectionInfo[];
         let cur = null;
         try {
             cur = this.db.listCollections({}, {nameOnly: true});
-            existCollections = await cur.toArray() as string[];
-            if (existCollections) {
+            existCollections = await cur.toArray();
+            if (existCollections && existCollections.length > 0) {
+                const existCollectionNames = existCollections.map(c => c.name);
                 for (let collectionName of collectionNames) {
-                    if (existCollections.indexOf(collectionName) === -1) {
+                    if (existCollectionNames.indexOf(collectionName) === -1) {
                         await this.db.createCollection(collectionName);
                     }
                 }
             }
         } catch (e) {
             console.error(e);
-            captureException(e);
+            this._sentry.capture(e);
         } finally {
-            if (cur != null && !cur.isClosed()) {
+            if (cur != null && !cur.closed) {
                 cur.close();
             }
         }

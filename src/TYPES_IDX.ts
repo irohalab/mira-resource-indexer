@@ -17,14 +17,36 @@
 import { Item } from './entity/Item';
 import { TaskStatus } from './task/task-status';
 import { Task } from './task/task-types';
+import { EventLog } from './entity/EventLog';
 
 export const TYPES_IDX = {
-    ConfigLoader: Symbol.for('ConfigLoader'),
     ItemStorage: Symbol.for('ItemStorage'),
     Scraper: Symbol.for('Scraper'),
     TaskStorage: Symbol.for('TaskStorage'),
     TaskTimingFactory: Symbol.for('TaskTiming'),
-    ThrottleStore: Symbol.for('ThrottleStore')
+    ThrottleStore: Symbol.for('ThrottleStore'),
+    EventLogStore: Symbol.for('EventLogStore')
+};
+
+export type LogType = 'info' | 'warn' | 'error';
+// Define the structure for the summarized output.
+export interface EventSummary {
+    _id: {
+        year: number;
+        month: number;
+        day: number;
+        hour?: number; // Hour is optional, used for hourly summaries
+        eventType: string;
+        eventName: string;
+    };
+    count: number;
+}
+
+export type AggregateEventLogsFilterOptions = {
+    eventType?: LogType;
+    eventName?: string;
+    startDate?: Date;
+    endDate?: Date;
 };
 
 export interface ItemStorage<T> {
@@ -33,7 +55,7 @@ export interface ItemStorage<T> {
     hasItem(id: T): Promise<boolean>;
     filterItemNotStored(ids: T[]): Promise<T[]>;
     putItem(item: Item<T>): Promise<boolean>;
-    searchItem(keyword: string): Promise<Array<Item<T>>>;
+    searchItem(keyword: string): Promise<Item<T>[]>;
 }
 
 export interface TaskQueue {
@@ -48,6 +70,21 @@ export interface TaskQueue {
 export interface ThrottleStore {
     getLastMainTaskTime(): Promise<number>;
     setLastMainTaskTime(): Promise<void>;
+    getLastFailedTaskTime(): Promise<number>
+    setLastFailedTaskTime(): Promise<void>;
+}
+
+export interface EventLogStore {
+    putEventLog(eventName: string, eventType: LogType): Promise<void>;
+    getLogs(eventType?: LogType, eventName?: string): Promise<EventLog[]>;
+
+    /**
+     * Summarize log numbers
+     * @param interval
+     * @param filterOptions
+     */
+    aggregateLogsByInterval(interval: 'day' | 'hour',
+                            filterOptions: AggregateEventLogsFilterOptions): Promise<EventSummary[]>;
 }
 
 export interface Scraper {
@@ -60,25 +97,6 @@ export interface Scraper {
      * @returns {Promise<boolean>} true, the
      */
     executeTask(task: Task): Promise<TaskStatus>;
-}
-
-export interface ConfigLoader {
-    mode: string;
-    dbMode: string;
-    dbHost: string;
-    dbPort: number;
-    dbUser: string;
-    dbName: string;
-    dbPass: string;
-    authSource: string; // see: https://docs.mongodb.com/manual/core/security-users/#user-authentication-database
-    serverHost: string;
-    serverPort: number;
-    minInterval: number; // for task, unit is millisecond
-    minCheckInterval: number; // for main task, unit is millisecond
-    maxPageNo: number; // max page number for scrapping
-    maxSearchCount: number; // max search result count
-    maxRetryCount: number; // max retry times for a task
-    load(): void;
 }
 
 export const TASK_EXCHANGE = 'task_exchange';

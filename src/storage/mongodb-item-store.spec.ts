@@ -21,13 +21,15 @@ import { MongoClient } from 'mongodb';
 import { DatabaseService } from '../service/database-service';
 import { FakeConfigManager } from '../test/fake-config';
 import { items } from '../test/test-samples';
-import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
+import { ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { MongodbItemStore } from './mongodb-item-store';
+import { ConfigManager } from '../utils/config-manager';
+import { TYPES } from '@irohalab/mira-shared';
 
 @TestFixture('MongodbStore test spec')
 export class MongodbItemStoreSpec {
     private _store: MongodbItemStore<number>;
-    private _config: ConfigLoader;
+    private _config: ConfigManager;
     private _container: Container;
     private _databaseService: DatabaseService;
 
@@ -39,13 +41,13 @@ export class MongodbItemStoreSpec {
             fail('You must set the Environment Variable DB_NAME to avoid potential damage to default database');
         }
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES_IDX.ConfigLoader).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<ConfigManager>(TYPES.ConfigManager).to(FakeConfigManager).inSingletonScope();
         this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
         this._container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inTransientScope();
-        this._config = this._container.get<ConfigLoader>(TYPES_IDX.ConfigLoader);
-        this._config.load();
+        this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
+        this._config.prepare();
         // this._config.dbHost = 'mongo';
-        this._config.dbPort = 27017;
+        (this._config as FakeConfigManager).dbPort = 27017;
     }
 
     @Setup
@@ -60,7 +62,7 @@ export class MongodbItemStoreSpec {
     public async databaseCleanUp(): Promise<void> {
         await this._databaseService.onEnd();
         const client = await this._createClient();
-        await client.db(this._config.dbName).collection(this._collectionName).drop();
+        await client.db(this._config.getDbName()).collection(this._collectionName).drop();
     }
 
     @TestCase(0)
@@ -71,7 +73,7 @@ export class MongodbItemStoreSpec {
         Expect(isSuccess).toBeTruthy();
         const client = await this._createClient();
         const result = await client
-        .db(this._config.dbName)
+        .db(this._config.getDbName())
         .collection(this._collectionName)
         .find({})
         .project({ _id: 0 })
@@ -96,9 +98,9 @@ export class MongodbItemStoreSpec {
     }
 
     private async _createClient(): Promise<MongoClient> {
-        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
-            this._config.dbHost
-          }:${this._config.dbPort}?authSource=${this._config.authSource}`;
-        return await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
+        const url = `mongodb://${this._config.getDbUser()}:${this._config.getDbPass()}@${
+            this._config.getDbHost()
+          }:${this._config.getDbPort()}?authSource=${this._config.getAuthSource()}`;
+        return await MongoClient.connect(url);
     }
 }

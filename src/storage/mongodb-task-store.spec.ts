@@ -23,14 +23,16 @@ import { DatabaseService } from '../service/database-service';
 import { SubTask } from '../task/sub-task';
 import { TaskType } from '../task/task-types';
 import { FakeConfigManager } from '../test/fake-config';
-import { ConfigLoader, TaskQueue, TYPES_IDX } from '../TYPES_IDX';
+import { TaskQueue, TYPES_IDX } from '../TYPES_IDX';
 import { MongodbTaskStore } from './mongodb-task-store';
+import { ConfigManager } from '../utils/config-manager';
+import { TYPES } from '@irohalab/mira-shared';
 
 // noinspection DuplicatedCode
 @TestFixture('MongodbStore test spec')
 export class MongodbItemStoreSpec {
     private _store: MongodbTaskStore;
-    private _config: ConfigLoader;
+    private _config: ConfigManager;
     private _container: Container;
     private _databaseService: DatabaseService;
 
@@ -43,13 +45,13 @@ export class MongodbItemStoreSpec {
             fail('You must set the Environment Variable DB_NAME to avoid potential damage to default database');
         }
         this._container = new Container();
-        this._container.bind<ConfigLoader>(TYPES_IDX.ConfigLoader).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<ConfigManager>(TYPES.ConfigManager).to(FakeConfigManager).inSingletonScope();
         this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
         this._container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(MongodbTaskStore).inTransientScope();
-        this._config = this._container.get<ConfigLoader>(TYPES_IDX.ConfigLoader);
-        this._config.load();
+        this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
+        this._config.prepare();
         // this._config.dbHost = 'mongo';
-        this._config.dbPort = 27017;
+        (this._config as FakeConfigManager).dbPort = 27017;
     }
 
     @Setup
@@ -63,11 +65,11 @@ export class MongodbItemStoreSpec {
     @Teardown
     public async databaseCleanUp(): Promise<void> {
         const client = await this._createClient();
-        const cur = client.db(this._config.dbName).listCollections({}, {nameOnly: true});
+        const cur = client.db(this._config.getDbName()).listCollections({}, {nameOnly: true});
         const existCollections = await cur.toArray();
         if (existCollections) {
             for (let collectionName of existCollections) {
-                await client.db(this._config.dbName).collection(collectionName.name).drop();
+                await client.db(this._config.getDbName()).collection(collectionName.name).drop();
             }
         }
         await this._databaseService.onEnd();
@@ -171,10 +173,10 @@ export class MongodbItemStoreSpec {
     }
 
     private async _createClient(): Promise<MongoClient> {
-        const url = `mongodb://${this._config.dbUser}:${this._config.dbPass}@${
-            this._config.dbHost
-            }:${this._config.dbPort}?authSource=${this._config.authSource}`;
-        return await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
+        const url = `mongodb://${this._config.getDbUser()}:${this._config.getDbPass()}@${
+            this._config.getDbHost()
+            }:${this._config.getDbPort()}?authSource=${this._config.getAuthSource()}`;
+        return await MongoClient.connect(url);
     }
 
     private sleep(milliseconds: number): Promise<void> {

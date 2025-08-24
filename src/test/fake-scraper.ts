@@ -38,7 +38,7 @@ export interface FakeSubResource {
 export class FakeScraper implements Scraper {
 
     public resources: FakeResource[];
-    public resolvedIds: Array<{id: number, timestamp: number}>;
+    public resolvedIds: {id: number, timestamp: number}[];
 
     constructor(@inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra) {
         this.resolvedIds = [];

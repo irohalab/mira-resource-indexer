@@ -15,7 +15,7 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { Browser, launch, Page } from 'puppeteer';
+import { Browser, HTTPRequest, launch, Page } from 'puppeteer';
 import { resolve } from 'url';
 import { promises } from 'fs';
 import { downloadFile } from '../utils/download';
@@ -25,11 +25,12 @@ import { ItemType } from '../entity/item-type';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
+import { EventLogStore, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { toUTCDate, trimDomain } from '../utils/normalize';
-import { captureException } from '../utils/sentry';
 import { BaseScraper } from './abstract/base-scraper';
 import { logger } from '../utils/logger-factory';
+import { Sentry, TYPES } from '@irohalab/mira-shared';
+import { ConfigManager } from '../utils/config-manager';
 
 const { unlink } = promises;
 
@@ -79,8 +80,10 @@ export class DmhyScraper extends BaseScraper<number> {
 
     constructor(@inject(TYPES_IDX.ItemStorage) store: ItemStorage<number>,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
-                @inject(TYPES_IDX.ConfigLoader) config: ConfigLoader) {
-        super(taskOrchestra, config, store);
+                @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
+                @inject(TYPES.Sentry) sentry: Sentry,
+                @inject(TYPES.ConfigManager) config: ConfigManager) {
+        super(taskOrchestra, config, store, eventLogStore, sentry);
     }
 
     public async start(): Promise<any> {
@@ -108,13 +111,12 @@ export class DmhyScraper extends BaseScraper<number> {
         await this._browser.close();
     }
 
-    public async executeMainTask(pageNo?: number): Promise<{items: Array<Item<number>>, hasNext: boolean}> {
+    public async executeMainTask(pageNo?: number): Promise<{items: Item<number>[], hasNext: boolean}> {
         const page = await this._browser.newPage();
         // page.setUserAgent('Mozilla/5.5 (X11; Linux x86_64) ' +
         //     'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36');
         try {
-            await page.setRequestInterception(true);
-            this.blockResources(page);
+            await this.blockResources(page);
             let listPageUrl = DmhyScraper._host;
             if (pageNo) {
                 listPageUrl += '/topics/list/page/' + pageNo;
@@ -155,7 +157,7 @@ export class DmhyScraper extends BaseScraper<number> {
             });
             return {hasNext: newIds.length === items.length && newIds.length > 0, items: newItems};
         } catch (e) {
-            captureException(e);
+            await this.handleTimeout(e);
             logger.warn('execute_main_task_exception', {
                 code: e.code,
                 error_message: e.message,
@@ -174,8 +176,6 @@ export class DmhyScraper extends BaseScraper<number> {
         let statusCode = -1;
         let bodyStr = null;
         try {
-            await page.setRequestInterception(true);
-            this.blockResources(page);
             logger.info('execute_sub_task', {
                 item
             });
@@ -229,7 +229,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 if (timeStr) {
                     return timeStr.trim();
                 }
-                return Date.now();
+                return new Date().toISOString();
             }, resourceInfoElement), 8);
             // console.log(item.timestamp);
             let btResourceElement = await mainArea.$('#tabs-1');
@@ -248,12 +248,12 @@ export class DmhyScraper extends BaseScraper<number> {
             await unlink(torrentPath);
         } catch (e) {
             console.info(bodyStr);
+            await this.handleTimeout(e);
             if (e.response) {
                 statusCode = e.response.status;
             } else {
                 statusCode = -1;
             }
-            captureException(e);
             logger.warn('execute_sub_task_exception', {
                 code: e.code,
                 error_message: e.message,
@@ -275,14 +275,16 @@ export class DmhyScraper extends BaseScraper<number> {
         return 0;
     }
 
-    private blockResources(page: Page): void {
-        page.on('request', (request: any) => {
-            const requestUrl = request._url.split('?')[0].split('#')[0];
-            if (BLOCKED_RESOURCE_TYPES.indexOf(request.resourceType()) !== -1 ||
+    private async blockResources(page: Page): Promise<void> {
+        await page.setRequestInterception(true);
+        page.on('request', (request: HTTPRequest) => {
+            const resourceType = request.resourceType();
+            const requestUrl = request.url().split('?')[0].split('#')[0];
+            if (BLOCKED_RESOURCE_TYPES.indexOf(resourceType) !== -1 ||
                 SKIPPED_RESOURCES.some(resource => requestUrl.indexOf(resource)  !== -1)) {
-                request.abort();
+                request.abort().catch(() => console.log(`Failed to abort request for ${requestUrl}`));
             } else {
-                request.continue();
+                request.continue().catch(() => console.log(`Failed to continue request for ${requestUrl}`));
             }
         });
     }

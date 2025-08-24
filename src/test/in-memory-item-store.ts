@@ -47,7 +47,7 @@ export class InMemoryItemStore<T> implements ItemStorage<T> {
         return Promise.resolve(true);
     }
 
-    public searchItem(keyword: string): Promise<Array<Item<T>>> {
+    public searchItem(keyword: string): Promise<Item<T>[]> {
         return undefined;
     }
 

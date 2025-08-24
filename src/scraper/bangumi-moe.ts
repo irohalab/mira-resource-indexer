@@ -23,22 +23,25 @@ import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
-import { captureException } from '../utils/sentry';
+import { EventLogStore, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { BaseScraper } from './abstract/base-scraper';
 import { logger } from '../utils/logger-factory';
+import { Sentry, TYPES } from '@irohalab/mira-shared';
+import { ConfigManager } from '../utils/config-manager';
 
 @injectable()
 export class BangumiMoe extends BaseScraper<string> {
     private static _host = 'https://bangumi.moe';
 
     constructor(@inject(TYPES_IDX.ItemStorage) store: ItemStorage<string>,
-                @inject(TYPES_IDX.ConfigLoader) config: ConfigLoader,
+                @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
+                @inject(TYPES.ConfigManager) config: ConfigManager,
+                @inject(TYPES.Sentry) sentry: Sentry,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra) {
-        super(taskOrchestra, config, store);
+        super(taskOrchestra, config, store, eventLogStore, sentry);
     }
 
-    public async executeMainTask(pageNo: number = 1): Promise<{items: Array<Item<string>>, hasNext: boolean}> {
+    public async executeMainTask(pageNo: number = 1): Promise<{items: Item<string>[], hasNext: boolean}> {
         logger.info('execute_main_task', {
             pageNo
         });
@@ -58,7 +61,8 @@ export class BangumiMoe extends BaseScraper<string> {
                 return item;
             });
             return {hasNext: newIds.length === listData.torrents.length && newIds.length > 0, items};
-        } catch (e) {
+        } catch (e: any) {
+            await this.handleTimeout(e as unknown as Error);
             logger.warn('execute_main_task_exception', {
                 code: e.code,
                 error_message: e.message,
@@ -66,7 +70,7 @@ export class BangumiMoe extends BaseScraper<string> {
                 page_no: pageNo,
                 stack: e.stack
             });
-            captureException(e);
+            this._sentry.capture(e);
         }
         return Promise.resolve(null);
     }
@@ -106,7 +110,8 @@ export class BangumiMoe extends BaseScraper<string> {
                 });
             }
 
-        } catch (e) {
+        } catch (e: any) {
+            await this.handleTimeout(e as unknown as Error);
             if (e.response) {
                 statusCode = e.response.status;
             } else {
@@ -119,7 +124,7 @@ export class BangumiMoe extends BaseScraper<string> {
                 line: '115',
                 stack: e.stack
             });
-            captureException(e);
+            this._sentry.capture(e);
         }
         return statusCode;
     }
