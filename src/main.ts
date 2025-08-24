@@ -33,7 +33,7 @@ import { MongodbThrottleStore } from './storage/mongodb-throttle-store';
 import { RabbitMQService, Sentry, SentryImpl, TYPES } from '@irohalab/mira-shared';
 import { RascalImpl } from '@irohalab/mira-shared/services/RascalImpl';
 import { ConfigManagerImpl } from './utils/config-manager-impl';
-import { ACG_RIP, BANGUMI_MOE, ConfigManager, DMHY, NYAA } from './utils/config-manager';
+import { ACG_RIP, BANGUMI_MOE, ConfigManager, DMHY, MIKANANI_ME, NYAA } from './utils/config-manager';
 import { hostname } from 'os';
 import { MongodbEventLogStore } from './storage/mongodb-event-log-store';
 import { MikananiMe } from './scraper/mikanani-me';
@@ -81,6 +81,10 @@ switch (config.getMode()) {
     case ACG_RIP:
         container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
         container.bind<Scraper>(TYPES_IDX.Scraper).to(AcgRipScraper).inSingletonScope();
+        break;
+    case MIKANANI_ME:
+        container.bind<ItemStorage<string>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
+        container.bind<Scraper>(TYPES_IDX.Scraper).to(MikananiMe).inSingletonScope();
         break;
     default:
         throw new Error('Mode is not supported yet');

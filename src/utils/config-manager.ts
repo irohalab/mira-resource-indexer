@@ -20,6 +20,7 @@ export const DMHY = 'dmhy';
 export const BANGUMI_MOE = 'bangumi_moe';
 export const NYAA = 'nyaa';
 export const ACG_RIP = 'acg_rip';
+export const MIKANANI_ME = 'mikanani_me';
 
 export interface ConfigManager extends BaseConfigManager {
     getMode(): string;
