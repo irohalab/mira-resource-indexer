@@ -74,3 +74,19 @@ services:
       SERVER_PORT: "4400"
       SENTRY_DSN: "${SENTRY_DSN}"
       APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"
+
+  mikanani_me:
+    <<: *web-common
+    command: node --title=acg_rip dist/main.js
+    ports:
+      - "4500:4500"
+    environment:
+      DB_HOST: "${DB_HOST-store}"
+      DB_PORT: "${DB_PORT-27017}"
+      DB_USER: "${DB_USER-admin}"
+      DB_PASS: "${DB_PASS-123456}"
+      INDEXER_MODE: "mikanani"
+      DB_NAME: "mikanani_indexer"
+      SERVER_PORT: "4500"
+      SENTRY_DSN: "${SENTRY_DSN}"
+      APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"

@@ -36,6 +36,7 @@ import { ConfigManagerImpl } from './utils/config-manager-impl';
 import { ACG_RIP, BANGUMI_MOE, ConfigManager, DMHY, NYAA } from './utils/config-manager';
 import { hostname } from 'os';
 import { MongodbEventLogStore } from './storage/mongodb-event-log-store';
+import { MikananiMe } from './scraper/mikanani-me';
 
 /* Initialize container */
 const container = new Container();
