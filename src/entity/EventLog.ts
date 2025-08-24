@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-import { init, captureMessage as sentryCaptureMessage, captureException as sentryCaptureException } from '@sentry/node';
-const DSN = process.env.SENTRY_DSN;
-if (DSN) {
-    // tslint:disable-next-line
-    const { version } = require('../package.json');
-    init({ dsn: DSN, release: `indexer@v${version}` });
-}
+import { LogType } from '../TYPES_IDX';
 
-export function captureException(err: any) {
-    if (DSN) {
-        sentryCaptureException(err);
-    }
-}
-
-export function captureMessage(msg: any) {
-    if (DSN) {
-        sentryCaptureMessage(msg);
-    }
+export class EventLog {
+    timestamp: Date;
+    eventName: string;
+    eventType: LogType;
 }

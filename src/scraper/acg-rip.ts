@@ -22,30 +22,33 @@ import { Team } from '../entity/Team';
 import { ItemType } from '../entity/item-type';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, ItemStorage, TYPES } from '../types';
+import { EventLogStore, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { downloadFile } from '../utils/download';
 import { logger } from '../utils/logger-factory';
-import { captureException } from '../utils/sentry';
 import { getTorrentInfo } from '../utils/torrent-utils';
 import { BaseScraper } from './abstract/base-scraper';
+import { ConfigManager } from '../utils/config-manager';
+import { Sentry, TYPES } from '@irohalab/mira-shared';
 import cheerio = require('cheerio');
 
 const { unlink }  = promises;
-const sleep = promisify(setTimeout);
+const sleep = promisify(setTimeout) as (t: number) => Promise<unknown>;
 
 @injectable()
 export class AcgRipScraper extends BaseScraper<number> {
     private static _host = 'https://acg.rip';
         
     constructor(
-        @inject(TYPES.ItemStorage) store: ItemStorage<number>,
+        @inject(TYPES_IDX.ItemStorage) store: ItemStorage<number>,
+        @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
-        @inject(TYPES.ConfigLoader) config: ConfigLoader
+        @inject(TYPES.ConfigManager) config: ConfigManager,
+        @inject(TYPES.Sentry) sentry: Sentry
     ) {
-        super(taskOrchestra, config, store);
+        super(taskOrchestra, config, store, eventLogStore, sentry);
     }
 
-    public async executeMainTask(pageNo?: number): Promise<{ items: Array<Item<number>>; hasNext: boolean; }> {
+    public async executeMainTask(pageNo?: number): Promise<{ items: Item<number>[]; hasNext: boolean; }> {
         const ACG_RIP_TYPES = [
             {id: 1, name: '动画'},
             {id: 2, name: '日剧'},
@@ -57,7 +60,7 @@ export class AcgRipScraper extends BaseScraper<number> {
 
         try {
             logger.info('execute_main_task', { pageNo });
-            const items: Array<Item<number>> = [];
+            const items: Item<number>[] = [];
 
             const getListPageItemsByType = async (type: {id: number, name: string}) => {
                 let listPageUrl = AcgRipScraper._host;
@@ -85,7 +88,7 @@ export class AcgRipScraper extends BaseScraper<number> {
 
             for (const type of ACG_RIP_TYPES) {
                 await getListPageItemsByType(type);
-                await sleep(this._config.minInterval);
+                await sleep(this._config.getMinInterval());
             }
 
             const newIds = await this._store.filterItemNotStored(items.map(item => item.id));
@@ -94,10 +97,8 @@ export class AcgRipScraper extends BaseScraper<number> {
             });
 
             return { hasNext: newIds.length === items.length && newIds.length > 1, items: newItems };
-        } catch (e) {
-            if (e.code !== 'ETIMEDOUT') {
-                captureException(e);
-            }
+        } catch (e: any) {
+            await this.handleTimeout(e as unknown as Error);
             logger.warn('execute_main_task_exception', {
                 code: e.code,
                 error_message: e.message,
@@ -142,7 +143,8 @@ export class AcgRipScraper extends BaseScraper<number> {
                 team.name = team$.text();
                 item.team = team;
             }
-        } catch (e) {
+        } catch (e: any) {
+            await this.handleTimeout(e as unknown as Error);
             if (e.response) {
                 statusCode = e.response.status;
             } else {
@@ -155,9 +157,6 @@ export class AcgRipScraper extends BaseScraper<number> {
                 line: '149',
                 stack: e.stack
             });
-            if (statusCode !== 404 && e.code !== 'ETIMEDOUT') {
-                captureException(e);
-            }
         }
         return statusCode;
     }

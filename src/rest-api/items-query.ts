@@ -15,14 +15,14 @@
  */
 
 import { inject } from 'inversify';
-import { controller, httpGet, queryParam, BaseHttpController } from 'inversify-express-utils';
-import { interfaces } from 'inversify-express-utils/dts/interfaces';
-import { ItemStorage, TYPES } from '../types';
+import { controller, httpGet, queryParam, BaseHttpController, interfaces } from 'inversify-express-utils';
+import { ItemStorage, TYPES_IDX } from '../TYPES_IDX';
+import { JsonResultFactory } from '@irohalab/mira-shared';
 
 @controller('/item')
-export class ItemsQuery<T> extends BaseHttpController {
+export class ItemsQuery<T> extends BaseHttpController implements interfaces.Controller {
 
-    constructor(@inject(TYPES.ItemStorage) private _storage: ItemStorage<T>) {
+    constructor(@inject(TYPES_IDX.ItemStorage) private _storage: ItemStorage<T>) {
         super();
     }
 
@@ -31,13 +31,18 @@ export class ItemsQuery<T> extends BaseHttpController {
         if (!keyword) {
             return this.badRequest('keyword required');
         }
-        let items = await this._storage.searchItem(keyword);
-        if (!items) {
-            items = [];
+        try {
+            let items = await this._storage.searchItem(keyword);
+            if (!items) {
+                items = [];
+            }
+            items.forEach(item => {
+                item._id = undefined;
+            });
+            return this.json(items, 200);
+        } catch (e) {
+            return JsonResultFactory(500);
         }
-        items.forEach(item => {
-            item._id = undefined;
-        });
-        return this.json(items, 200);
+
     }
 }

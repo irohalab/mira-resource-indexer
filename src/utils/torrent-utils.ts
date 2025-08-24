@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import parseTorrent = require('parse-torrent');
 import { readFile } from 'fs';
-import * as ParseTorrentFile from 'parse-torrent-file';
 import { basename, extname } from 'path';
 import { promisify } from 'util';
 import { MediaFile } from '../entity/media-file';
+import parseTorrent from 'parse-torrent';
+import * as ParseTorrentFile from 'parse-torrent';
 
 const readFilePromise = promisify(readFile);
 

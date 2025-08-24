@@ -20,10 +20,12 @@ import { DatabaseService } from '../service/database-service';
 import { MainTask } from '../task/main-task';
 import { SubTask } from '../task/sub-task';
 import { Task, TaskType } from '../task/task-types';
-import { ConfigLoader, TaskStorage, TYPES } from '../types';
+import { TaskQueue } from '../TYPES_IDX';
+import { TYPES } from '@irohalab/mira-shared';
+import { ConfigManager } from '../utils/config-manager';
 
 @injectable()
-export class MongodbTaskStore implements TaskStorage {
+export class MongodbTaskStore implements TaskQueue {
 
     private get db(): Db {
         return this._databaseService.db;
@@ -33,7 +35,7 @@ export class MongodbTaskStore implements TaskStorage {
     private _failedTaskCollectionName = 'failed_task';
 
     constructor(private _databaseService: DatabaseService,
-                @inject(TYPES.ConfigLoader) private _config: ConfigLoader) {
+                @inject(TYPES.ConfigManager) private _config: ConfigManager) {
         this._databaseService.checkCollection([this._taskCollectionName, this._failedTaskCollectionName]);
     }
 
@@ -67,7 +69,7 @@ export class MongodbTaskStore implements TaskStorage {
 
     private async push(collection: string, task: Task): Promise<boolean> {
         await this._databaseService.transaction(async (client) => {
-            const taskCollection = client.db(this._config.dbName).collection(collection);
+            const taskCollection = client.db(this._config.getDbName()).collection(collection);
             let filterObj: any = {type: task.type};
             if (task.type === TaskType.MAIN) {
                 if (task instanceof MainTask) {
@@ -83,11 +85,10 @@ export class MongodbTaskStore implements TaskStorage {
     }
 
     private async poll(collection: string): Promise<Task> {
-        const cursor = await this.db.collection(collection).findOneAndDelete({}, {
+        return await this.db.collection<Task>(collection).findOneAndDelete({}, {
             sort: {
                 updateTime: 1
             }
         });
-        return cursor.value;
     }
 }

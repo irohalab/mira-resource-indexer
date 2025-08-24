@@ -16,10 +16,10 @@
 
 import { injectable } from 'inversify';
 import { Task } from '../task/task-types';
-import { TaskStorage } from '../types';
+import { TaskQueue } from '../TYPES_IDX';
 
 @injectable()
-export class InMemoryTaskStore implements TaskStorage {
+export class InMemoryTaskStore implements TaskQueue {
     private _taskQueue: Task[];
     private _failedTaskQueue: Task[];
 

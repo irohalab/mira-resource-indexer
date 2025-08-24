@@ -17,7 +17,6 @@
 import { CommonTask, Task, TaskType } from './task-types';
 
 export class MainTask extends CommonTask {
-    public id: number;
     public pageNo: number = 1;
     constructor(type: TaskType) {
         super(type);

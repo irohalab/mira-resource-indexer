@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es2022",
     "sourceMap": true,
     "module": "commonjs",
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
     "resolveJsonModule": true,
     "lib": [
-      "es2017",
       "dom",
       "dom.iterable",
       "esnext.asynciterable"

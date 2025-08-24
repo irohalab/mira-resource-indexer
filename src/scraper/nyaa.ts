@@ -22,25 +22,28 @@ import { ItemType } from '../entity/item-type';
 import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
-import { ConfigLoader, ItemStorage, TYPES } from '../types';
-import { captureException } from '../utils/sentry';
+import { EventLogStore, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { BaseScraper } from './abstract/base-scraper';
 import cheerio = require('cheerio');
 import { logger } from '../utils/logger-factory';
+import { Sentry, TYPES } from '@irohalab/mira-shared';
+import { ConfigManager } from '../utils/config-manager';
 
 @injectable()
 export class NyaaScraper extends BaseScraper<number> {
     private static _host = 'https://nyaa.si';
 
     constructor(
-        @inject(TYPES.ItemStorage) store: ItemStorage<number>,
+        @inject(TYPES_IDX.ItemStorage) store: ItemStorage<number>,
+        @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
-        @inject(TYPES.ConfigLoader) config: ConfigLoader
+        @inject(TYPES.Sentry) sentry: Sentry,
+        @inject(TYPES.ConfigManager) config: ConfigManager
     ) {
-        super(taskOrchestra, config, store);
+        super(taskOrchestra, config, store, eventLogStore, sentry);
     }
 
-    public async executeMainTask(pageNo?: number): Promise<{ items: Array<Item<number>>, hasNext: boolean }> {
+    public async executeMainTask(pageNo?: number): Promise<{ items: Item<number>[], hasNext: boolean }> {
         try {
             let listPageUrl = NyaaScraper._host;
             if (pageNo) {
@@ -53,7 +56,7 @@ export class NyaaScraper extends BaseScraper<number> {
 
             const $ = cheerio.load(resp.data);
             const trList = Array.from($('table > tbody > tr'));
-            let items: Array<Item<number>> = [];
+            let items: Item<number>[] = [];
             trList.forEach(tr => {
                 let item = new Item<number>();
 
@@ -74,10 +77,8 @@ export class NyaaScraper extends BaseScraper<number> {
             });
             return { hasNext: newIds.length === items.length && newIds.length > 0, items: newItems };
 
-        } catch (e) {
-            if (e.code !== 'ETIMEDOUT') {
-                captureException(e);
-            }
+        } catch (e: any) {
+            await this.handleTimeout(e as unknown as Error);
             logger.warn('execute_main_task_exception', {
                 code: e.code,
                 error_message: e.message,
@@ -139,7 +140,8 @@ export class NyaaScraper extends BaseScraper<number> {
                 mediaFile.name = basename(mediaFile.path, mediaFile.ext);
                 item.files.push(mediaFile);
             }
-        } catch (e) {
+        } catch (e: any) {
+            await this.handleTimeout(e as unknown as Error);
             if (e.response) {
                 statusCode = e.response.status;
             } else {
@@ -152,9 +154,6 @@ export class NyaaScraper extends BaseScraper<number> {
                 line: '149',
                 stack: e.stack
             });
-            if (statusCode !== 404 && e.code !== 'ETIMEDOUT') {
-                captureException(e);
-            }
 
             console.error(JSON.stringify(e));
         }

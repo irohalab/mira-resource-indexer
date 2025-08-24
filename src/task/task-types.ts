@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-let taskCount = 0;
+import { MQMessage } from '@irohalab/mira-shared';
+import { nanoid } from 'nanoid';
 
 export enum TaskType {
     SUB = 0,
     MAIN = 1
 }
 
-export interface Task {
-    id: number;
+export interface Task extends MQMessage {
+    id: string;
     type: TaskType;
     timestamp: number;
     retryCount?: number;
@@ -31,11 +32,12 @@ export interface Task {
 }
 
 export class CommonTask implements Task {
-    public id: number;
+    public id: string;
     public timestamp: number;
     public retryCount?: number;
+    public version: string = '1';
     constructor(public type: TaskType) {
-        this.id = taskCount++;
+        this.id = nanoid(10);
         this.timestamp = Date.now();
     }
 
