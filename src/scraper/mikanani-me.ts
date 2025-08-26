@@ -16,18 +16,19 @@
 
 import { Browser, launch, Page } from 'puppeteer';
 import { inject } from 'inversify';
-import { ConfigLoader, ItemStorage, TYPES } from '../types';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { Item } from '../entity/Item';
 import { logger } from '../utils/logger-factory';
 import { toUTCDate} from '../utils/normalize';
-import { captureException } from '../utils/sentry';
 import { Publisher } from '../entity/publisher';
 import { Team } from '../entity/Team';
 import { downloadFile } from '../utils/download';
 import { getTorrentInfo } from '../utils/torrent-utils';
 import { BaseScraper } from './abstract/base-scraper';
 import { promises } from 'fs';
+import { EventLogStore, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
+import { ConfigManager } from '../utils/config-manager';
+import { Sentry, TYPES } from '@irohalab/mira-shared';
 
 const { unlink } = promises;
 
@@ -74,10 +75,12 @@ export class MikananiMe extends BaseScraper<string> {
     private static _host = 'https://mikanani.me';
     private _browser: Browser;
 
-    constructor(@inject(TYPES.ItemStorage) store: ItemStorage<string>,
+    constructor(@inject(TYPES_IDX.ItemStorage) store: ItemStorage<string>,
+                @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
-                @inject(TYPES.ConfigLoader) config: ConfigLoader) {
-        super(taskOrchestra, config, store);
+                @inject(TYPES.Sentry) sentry: Sentry,
+                @inject(TYPES.ConfigManager) config: ConfigManager) {
+        super(taskOrchestra, config, store, eventLogStore, sentry);
     }
 
     public async start(): Promise<any> {
@@ -107,7 +110,7 @@ export class MikananiMe extends BaseScraper<string> {
         }
     }
 
-    public async executeMainTask(pageNo?: number): Promise<{items: Array<Item<string>>, hasNext: boolean}> {
+    public async executeMainTask(pageNo?: number): Promise<{items: Item<string>[], hasNext: boolean}> {
         const page = await this._browser.newPage();
         // page.setUserAgent('Mozilla/5.5 (X11; Linux x86_64) ' +
         //     'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36');
@@ -141,7 +144,7 @@ export class MikananiMe extends BaseScraper<string> {
                 items.push(item);
             }
             let newIds = await this._store.filterItemNotStored(items.map(item => item.id));
-            let newItems: Array<Item<string>> = [];
+            let newItems: Item<string>[] = [];
             let newIdx = items.map((item) => {
                 return newIds.includes(item.id);
             });
@@ -221,7 +224,7 @@ export class MikananiMe extends BaseScraper<string> {
             }
             return {hasNext: newIds.length === items.length && newIds.length > 0, items: newItems};
         } catch (e) {
-            captureException(e);
+            await this.handleTimeout(e);
             logger.warn('execute_main_task_exception', {
                 code: e.code,
                 error_message: e.message,
@@ -252,7 +255,7 @@ export class MikananiMe extends BaseScraper<string> {
                 // ignore 404 torrent url.
                 return 200;
             }
-            captureException(e);
+            await this.handleTimeout(e);
             logger.warn('execute_sub_task_exception', {
                 code: e.code,
                 error_message: e.message,

@@ -3,8 +3,8 @@ services:
   mongo:
     platform: linux/x86_64
     image: mongo:4.2.2
-    ports:
-      - "27017:27017"
+#    ports:
+#      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${DB_USER-admin}"
       MONGO_INITDB_ROOT_PASSWORD: "${DB_PASS-123456}"
@@ -36,10 +36,11 @@ services:
       SERVER_HOST: "${SERVER_HOST-0.0.0.0}"
       MIN_INTERVAL: "${MIN_INTERVAL-10000}"
       MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
+      MIN_FAILED_TASK_CHECK_INTERVAL: ${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}
       MAX_PAGE_NO: ${MAX_PAGE_NO-5}
       MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SENTRY_DSN: ${SENTRY_DSN}
-      APPINSIGHTS_INSTRUMENTATIONKEY: "${APPINSIGHTS_INSTRUMENTATIONKEY}"
+      AMQP_URL: ${AMQP_URL}
     volumes:
       - ".:/irohalab/indexer"
       - "/irohalab/indexer/node_modules"

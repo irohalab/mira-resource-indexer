@@ -23,10 +23,14 @@ import { Options } from 'amqplib';
 
 @injectable()
 export class FakeConfigManager implements ConfigManager {
+
     minInterval!: number;
     minCheckInterval!: number;
     dbPort!: number;
 
+    getMinFailedTaskCheckInterval(): number {
+        throw new Error('Method not implemented.');
+    }
     getMode(): string {
         return process.env.INDEXER_MODE;
     }
