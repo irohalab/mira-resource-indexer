@@ -17,7 +17,7 @@
 import { injectable } from 'inversify';
 import { inspect } from 'util';
 import { Item } from '../entity/Item';
-import { ItemStorage } from '../types';
+import { ItemStorage } from '../TYPES_IDX';
 
 @injectable()
 export class InMemoryItemStore<T> implements ItemStorage<T> {
@@ -47,7 +47,7 @@ export class InMemoryItemStore<T> implements ItemStorage<T> {
         return Promise.resolve(true);
     }
 
-    public searchItem(keyword: string): Promise<Array<Item<T>>> {
+    public searchItem(keyword: string): Promise<Item<T>[]> {
         return undefined;
     }
 

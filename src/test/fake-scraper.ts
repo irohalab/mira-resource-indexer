@@ -18,7 +18,7 @@ import { inject, injectable } from 'inversify';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { TaskStatus } from '../task/task-status';
 import { Task, TaskType } from '../task/task-types';
-import { Scraper } from '../types';
+import { Scraper } from '../TYPES_IDX';
 import { FakeTask } from './fake-task';
 
 export const MIN_INTERVAL = 10;
@@ -38,7 +38,7 @@ export interface FakeSubResource {
 export class FakeScraper implements Scraper {
 
     public resources: FakeResource[];
-    public resolvedIds: Array<{id: number, timestamp: number}>;
+    public resolvedIds: {id: number, timestamp: number}[];
 
     constructor(@inject(TaskOrchestra) private _taskOrchestra: TaskOrchestra) {
         this.resolvedIds = [];
