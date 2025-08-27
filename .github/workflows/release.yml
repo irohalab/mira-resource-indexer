@@ -10,7 +10,7 @@ jobs:
   release-package:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Install Sentry CLI
       run: curl -sL https://sentry.io/get-cli/ | bash
     - name: Create a release

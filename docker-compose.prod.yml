@@ -6,9 +6,10 @@ x-web-common:
   cap_add:
     - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker
   logging:
-    driver: gelf
+    driver: "json-file"
     options:
-      gelf-address: "udp://elastic:5000"
+      max-size: "10M"
+      max-file: "3"
 
 services:
   dmhy:
@@ -25,6 +26,7 @@ services:
       DB_NAME: "dmhy_indexer"
       SERVER_PORT: "4000"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   bangumi_moe:
     << : *web-common
@@ -40,6 +42,7 @@ services:
       DB_NAME: "bangumi_moe_indexer"
       SERVER_PORT: "4200"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   nyaa:
     << : *web-common
@@ -55,6 +58,7 @@ services:
       DB_NAME: "nyaa_indexer"
       SERVER_PORT: "4300"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   acg_rip:
     << : *web-common
@@ -70,6 +74,7 @@ services:
       DB_NAME: "acg_rip_indexer"
       SERVER_PORT: "4400"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   mikanani_me:
     <<: *web-common
@@ -81,7 +86,8 @@ services:
       DB_PORT: "${DB_PORT-27017}"
       DB_USER: "${DB_USER-admin}"
       DB_PASS: "${DB_PASS-123456}"
-      INDEXER_MODE: "mikanani"
+      INDEXER_MODE: "mikanani_me"
       DB_NAME: "mikanani_indexer"
       SERVER_PORT: "4500"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
