@@ -22,9 +22,10 @@ services:
       - "9229:9229"
       - "35120:35120"
     logging:
-      driver: gelf
+      driver: json-file
       options:
-        gelf-address: "udp://0.0.0.0:5000"
+        max-size: "10M"
+        max-file: "3"
     environment:
       INDEXER_MODE: "${INDEXER_MODE-dmhy}"
       DB_HOST: "${DB_HOST-mongo}"
