@@ -6,9 +6,10 @@ x-web-common:
   cap_add:
     - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker
   logging:
-    driver: gelf
+    driver: "json-file"
     options:
-      gelf-address: "udp://elastic:5000"
+      max-size: "10M"
+      max-file: "3"
 
 services:
   dmhy:
@@ -23,8 +24,14 @@ services:
       DB_PASS: "${DB_PASS-123456}"
       INDEXER_MODE: "dmhy"
       DB_NAME: "dmhy_indexer"
+      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
+      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
+      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
+      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
+      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SERVER_PORT: "4000"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   bangumi_moe:
     << : *web-common
@@ -38,8 +45,14 @@ services:
       DB_PASS: "${DB_PASS-123456}"
       INDEXER_MODE: "bangumi_moe"
       DB_NAME: "bangumi_moe_indexer"
+      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
+      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
+      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
+      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
+      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SERVER_PORT: "4200"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   nyaa:
     << : *web-common
@@ -53,8 +66,14 @@ services:
       DB_PASS: "${DB_PASS-123456}"
       INDEXER_MODE: "nyaa"
       DB_NAME: "nyaa_indexer"
+      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
+      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
+      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
+      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
+      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SERVER_PORT: "4300"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   acg_rip:
     << : *web-common
@@ -68,8 +87,14 @@ services:
       DB_PASS: "${DB_PASS-123456}"
       INDEXER_MODE: "acg_rip"
       DB_NAME: "acg_rip_indexer"
+      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
+      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
+      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
+      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
+      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SERVER_PORT: "4400"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
 
   mikanani_me:
     <<: *web-common
@@ -81,7 +106,13 @@ services:
       DB_PORT: "${DB_PORT-27017}"
       DB_USER: "${DB_USER-admin}"
       DB_PASS: "${DB_PASS-123456}"
-      INDEXER_MODE: "mikanani"
+      INDEXER_MODE: "mikanani_me"
       DB_NAME: "mikanani_indexer"
+      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
+      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
+      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
+      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
+      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SERVER_PORT: "4500"
       SENTRY_DSN: "${SENTRY_DSN}"
+      AMQP_URL: ${AMQP_URL}
