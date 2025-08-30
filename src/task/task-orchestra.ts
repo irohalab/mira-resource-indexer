@@ -43,6 +43,8 @@ export class TaskOrchestra {
     private _lastExeTime = 0;
 
     private readonly _exchangeName: string;
+    private readonly _queueName: string;
+    private readonly _taskRoutingKey: string;
 
     constructor(@inject(TYPES.ConfigManager) private _config: ConfigManager,
                 @inject(TYPES_IDX.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number,
@@ -50,14 +52,16 @@ export class TaskOrchestra {
                 @inject(TYPES_IDX.TaskStorage) private _taskStore: TaskQueue,
                 @inject(TYPES_IDX.ThrottleStore) private _throttleStore: ThrottleStore) {
         this._exchangeName = `${TASK_EXCHANGE}_${this._config.getMode()}`;
+        this._queueName = `${TASK_QUEUE}_${this._config.getMode()}`;
+        this._taskRoutingKey = `${TASK_ROUTING_KEY}_${this._config.getMode()}`;
     }
 
     public async start(scraper: Scraper): Promise<void> {
         let actualInterval = this._taskTimingFactory(this._config.getMinInterval());
         this._scraper = scraper;
-        await this._mqService.initPublisher(this._exchangeName, 'direct', TASK_ROUTING_KEY);
-        await this._mqService.initConsumer(this._exchangeName, 'direct', TASK_QUEUE, TASK_ROUTING_KEY);
-        await this._mqService.consume(TASK_QUEUE, async (msg: MQMessage) => {
+        await this._mqService.initPublisher(this._exchangeName, 'direct', this._taskRoutingKey);
+        await this._mqService.initConsumer(this._exchangeName, 'direct', this._queueName, this._taskRoutingKey);
+        await this._mqService.consume(this._queueName, async (msg: MQMessage) => {
             const task = msg as Task;
             const currentTime = Date.now();
             if (currentTime < this._lastExeTime + actualInterval) {
@@ -78,7 +82,7 @@ export class TaskOrchestra {
     }
 
     public async queue(task: Task): Promise<void> {
-        await this._mqService.publish(this._exchangeName, TASK_ROUTING_KEY, task);
+        await this._mqService.publish(this._exchangeName, this._taskRoutingKey, task);
     }
 
     public stop() {

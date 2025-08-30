@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Browser, launch, Page } from 'puppeteer';
+import { Browser, HTTPRequest, launch, Page } from 'puppeteer';
 import { inject } from 'inversify';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { Item } from '../entity/Item';
@@ -277,13 +277,18 @@ export class MikananiMe extends BaseScraper<string> {
     }
 
     private blockResources(page: Page): void {
-        page.on('request', (request: any) => {
-            const requestUrl = request._url.split('?')[0].split('#')[0];
+        page.on('request', (request: HTTPRequest) => {
+            const requestUrl = URL.parse(request.url());
+            const host = requestUrl.host;
             if (BLOCKED_RESOURCE_TYPES.indexOf(request.resourceType()) !== -1 ||
-                SKIPPED_RESOURCES.some(resource => requestUrl.indexOf(resource)  !== -1)) {
-                request.abort();
+                SKIPPED_RESOURCES.some(resource => host.indexOf(resource)  !== -1)) {
+                request.abort().then(() => {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log(`requestUrl ${requestUrl} aborted`);
+                    }
+                });
             } else {
-                request.continue();
+                request.continue().then(() => {/* do thing */});
             }
         });
     }
