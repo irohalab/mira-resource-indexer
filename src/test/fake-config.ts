@@ -20,6 +20,7 @@ import { MikroORMOptions } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/knex';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { Options } from 'amqplib';
+import process from 'node:process';
 
 @injectable()
 export class FakeConfigManager implements ConfigManager {
@@ -86,10 +87,20 @@ export class FakeConfigManager implements ConfigManager {
         }
     }
     amqpConfig(): Options.Connect {
-        throw new Error('Method not implemented.');
+        return {
+            hostname: process.env.AMQP_HOST || 'localhost',
+            protocol: 'amqp',
+            port: process.env.AMQP_PORT ? parseInt(process.env.AMQP_PORT, 10) : 5672,
+            username: process.env.AMQP_USER || 'guest',
+            password: process.env.AMQP_PASS || 'guest',
+            locale: 'en_US',
+            frameMax: 0,
+            heartbeat: 0,
+            vhost: '/'
+        }
     }
     amqpServerUrl(): string {
-        throw new Error('Method not implemented.');
+        return process.env.AMQP_URL;
     }
     databaseConfig(): MikroORMOptions<PostgreSqlDriver, SqlEntityManager<PostgreSqlDriver>> {
         throw new Error('Method not implemented.');

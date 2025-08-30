@@ -3,12 +3,20 @@ services:
   mongo:
     platform: linux/x86_64
     image: mongo:4.2.2
-#    ports:
-#      - "27017:27017"
+    ports:
+      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${DB_USER-admin}"
       MONGO_INITDB_ROOT_PASSWORD: "${DB_PASS-123456}"
       MONGO_INITDB_DATABASE: "${DB_NAME-dmhy_indexer}"
+  rabbitmq:
+    platform: linux/x86_64
+    image: "rabbitmq:4.1"
+    ports:
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "${DB_USER-guest}"
+      RABBITMQ_DEFAULT_PASS: "${DB_PASS-guest}"
   main:
     platform: linux/x86_64
     build:
