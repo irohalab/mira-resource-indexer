@@ -56,3 +56,4 @@ services:
       - "/irohalab/indexer/dist"
     depends_on:
       - mongo
+      - rabbitmq
