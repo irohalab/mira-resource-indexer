@@ -23,8 +23,9 @@ import { MockTaskTiming } from '../test/mock-task-timing';
 import { Scraper, TaskQueue, TYPES_IDX } from '../TYPES_IDX';
 import { TaskOrchestra } from './task-orchestra';
 import { ConfigManager } from '../utils/config-manager';
-import { RabbitMQService, TYPES } from '@irohalab/mira-shared';
+import { RabbitMQService, Sentry, TYPES } from '@irohalab/mira-shared';
 import { RascalImpl } from '@irohalab/mira-shared/services/RascalImpl';
+import { FakeSentry } from '../test/FakeSentry';
 
 @TestFixture('TaskOrchestra test spec')
 export class TaskOrchestraSpec {
@@ -36,6 +37,7 @@ export class TaskOrchestraSpec {
     public setupFixture() {
         this._container = new Container();
         this._container.bind<ConfigManager>(TYPES.ConfigManager).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<Sentry>(TYPES.Sentry).to(FakeSentry).inSingletonScope();
         this._container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactory<number>(MockTaskTiming);
         this._container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(InMemoryTaskStore).inSingletonScope();
         this._container.bind<RabbitMQService>(TYPES.RabbitMQService).to(RascalImpl).inSingletonScope();
