@@ -27,10 +27,11 @@ export class FakeConfigManager implements ConfigManager {
 
     minInterval!: number;
     minCheckInterval!: number;
+    minFailedTaskCheckInterval!: number;
     dbPort!: number;
 
     getMinFailedTaskCheckInterval(): number {
-        throw new Error('Method not implemented.');
+       return this.minFailedTaskCheckInterval || parseInt(process.env.MIN_FAILED_TASK_CHECK_INTERVAL, 10) || (60 * 1000);
     }
     getMode(): string {
         return process.env.INDEXER_MODE;

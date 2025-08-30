@@ -49,6 +49,7 @@ export class TaskOrchestraSpec {
         this._config.prepare();
         (this._config as unknown as FakeConfigManager).minCheckInterval = MIN_INTERVAL * 3;
         (this._config as unknown as FakeConfigManager).minInterval = MIN_INTERVAL;
+        (this._config as unknown as FakeConfigManager).minFailedTaskCheckInterval = MIN_INTERVAL * 2;
     }
 
     @Setup
