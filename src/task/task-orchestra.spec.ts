@@ -20,12 +20,13 @@ import { FakeConfigManager } from '../test/fake-config';
 import { FakeResource, FakeScraper, MIN_INTERVAL } from '../test/fake-scraper';
 import { InMemoryTaskStore } from '../test/in-memory-task-store';
 import { MockTaskTiming } from '../test/mock-task-timing';
-import { Scraper, TaskQueue, TYPES_IDX } from '../TYPES_IDX';
+import { Scraper, TaskQueue, ThrottleStore, TYPES_IDX } from '../TYPES_IDX';
 import { TaskOrchestra } from './task-orchestra';
 import { ConfigManager } from '../utils/config-manager';
 import { RabbitMQService, Sentry, TYPES } from '@irohalab/mira-shared';
 import { RascalImpl } from '@irohalab/mira-shared/services/RascalImpl';
 import { FakeSentry } from '../test/FakeSentry';
+import { MongodbThrottleStore } from '../storage/mongodb-throttle-store';
 
 @TestFixture('TaskOrchestra test spec')
 export class TaskOrchestraSpec {
@@ -43,6 +44,7 @@ export class TaskOrchestraSpec {
         this._container.bind<RabbitMQService>(TYPES.RabbitMQService).to(RascalImpl).inSingletonScope();
         this._container.bind<TaskOrchestra>(TaskOrchestra).toSelf();
         this._container.bind<Scraper>(TYPES_IDX.Scraper).to(FakeScraper).inTransientScope();
+        this._container.bind<ThrottleStore>(TYPES_IDX.ThrottleStore).to(MongodbThrottleStore).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
         this._config.prepare();
         (this._config as unknown as FakeConfigManager).minCheckInterval = MIN_INTERVAL * 3;
