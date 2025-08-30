@@ -20,10 +20,13 @@ import { FakeConfigManager } from '../test/fake-config';
 import { FakeResource, FakeScraper, MIN_INTERVAL } from '../test/fake-scraper';
 import { InMemoryTaskStore } from '../test/in-memory-task-store';
 import { MockTaskTiming } from '../test/mock-task-timing';
-import { Scraper, TaskQueue, TYPES_IDX } from '../TYPES_IDX';
+import { Scraper, TaskQueue, ThrottleStore, TYPES_IDX } from '../TYPES_IDX';
 import { TaskOrchestra } from './task-orchestra';
 import { ConfigManager } from '../utils/config-manager';
-import { TYPES } from '@irohalab/mira-shared';
+import { RabbitMQService, Sentry, TYPES } from '@irohalab/mira-shared';
+import { RascalImpl } from '@irohalab/mira-shared/services/RascalImpl';
+import { FakeSentry } from '../test/FakeSentry';
+import { InMemoryThrottleStore } from '../test/in-memory-throttle-store';
 
 @TestFixture('TaskOrchestra test spec')
 export class TaskOrchestraSpec {
@@ -35,14 +38,18 @@ export class TaskOrchestraSpec {
     public setupFixture() {
         this._container = new Container();
         this._container.bind<ConfigManager>(TYPES.ConfigManager).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<Sentry>(TYPES.Sentry).to(FakeSentry).inSingletonScope();
         this._container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactory<number>(MockTaskTiming);
         this._container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(InMemoryTaskStore).inSingletonScope();
+        this._container.bind<RabbitMQService>(TYPES.RabbitMQService).to(RascalImpl).inSingletonScope();
         this._container.bind<TaskOrchestra>(TaskOrchestra).toSelf();
         this._container.bind<Scraper>(TYPES_IDX.Scraper).to(FakeScraper).inTransientScope();
+        this._container.bind<ThrottleStore>(TYPES_IDX.ThrottleStore).to(InMemoryThrottleStore).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
         this._config.prepare();
         (this._config as unknown as FakeConfigManager).minCheckInterval = MIN_INTERVAL * 3;
         (this._config as unknown as FakeConfigManager).minInterval = MIN_INTERVAL;
+        (this._config as unknown as FakeConfigManager).minFailedTaskCheckInterval = MIN_INTERVAL * 2;
     }
 
     @Setup

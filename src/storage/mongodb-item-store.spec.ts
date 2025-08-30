@@ -24,7 +24,8 @@ import { items } from '../test/test-samples';
 import { ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { MongodbItemStore } from './mongodb-item-store';
 import { ConfigManager } from '../utils/config-manager';
-import { TYPES } from '@irohalab/mira-shared';
+import { Sentry, TYPES } from '@irohalab/mira-shared';
+import { FakeSentry } from '../test/FakeSentry';
 
 @TestFixture('MongodbStore test spec')
 export class MongodbItemStoreSpec {
@@ -44,6 +45,7 @@ export class MongodbItemStoreSpec {
         this._container.bind<ConfigManager>(TYPES.ConfigManager).to(FakeConfigManager).inSingletonScope();
         this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
         this._container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inTransientScope();
+        this._container.bind<Sentry>(TYPES.Sentry).to(FakeSentry).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
         this._config.prepare();
         // this._config.dbHost = 'mongo';
