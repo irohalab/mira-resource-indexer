@@ -15,8 +15,8 @@ services:
     ports:
       - "5672:5672"
     environment:
-      RABBITMQ_DEFAULT_USER: "${DB_USER-guest}"
-      RABBITMQ_DEFAULT_PASS: "${DB_PASS-guest}"
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER-ciuser}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS-cipassword}"
   main:
     platform: linux/x86_64
     build:
@@ -49,7 +49,7 @@ services:
       MAX_PAGE_NO: ${MAX_PAGE_NO-5}
       MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SENTRY_DSN: ${SENTRY_DSN}
-      AMQP_URL: "${AMQP_URL-amqp://guest:guest@rabbitmq:5672/}"
+      AMQP_URL: "${AMQP_URL-amqp://ciuser:cipassword@rabbitmq:5672/}"
     volumes:
       - ".:/irohalab/indexer"
       - "/irohalab/indexer/node_modules"
