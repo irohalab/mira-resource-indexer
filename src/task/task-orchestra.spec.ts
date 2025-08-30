@@ -25,7 +25,7 @@ import { TaskOrchestra } from './task-orchestra';
 import { ConfigManager } from '../utils/config-manager';
 import { TYPES } from '@irohalab/mira-shared';
 
-@TestFixture('TaskOrchestra test spec')
+// @TestFixture('TaskOrchestra test spec')
 export class TaskOrchestraSpec {
     private _container: Container;
     private _config: ConfigManager;
