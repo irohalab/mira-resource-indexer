@@ -33,6 +33,7 @@ jobs:
         compose-file: ./docker-compose.yml
         services: |
           mongo
+          rabbitmq
       env:
         INDEXER_MODE: dmhy
         DB_MODE: localhost
