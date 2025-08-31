@@ -198,6 +198,14 @@ export class MikananiMe extends BaseScraper<string> {
                 item.publisher.id = item.team.id;
                 item.publisher.name = item.team.name;
 
+                item.title = await page.evaluate(el => {
+                    let titleLink = el.querySelector('td:nth-child(3)>a.magnet-link-wrap');
+                    if (titleLink) {
+                        return titleLink.textContent.trim();
+                    }
+                    return '';
+                }, tr);
+
                 item.magnet_uri = await page.evaluate(el => {
                     let magnetLink = el.querySelector('td:nth-child(3) > a.js-magnet.magnet-link');
                     if (magnetLink && magnetLink.getAttribute('data-clipboard-text')) {
