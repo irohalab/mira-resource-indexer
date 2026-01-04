@@ -16,18 +16,19 @@
 
 import Axios from 'axios';
 import { inject, injectable } from 'inversify';
-import { basename, extname } from 'path';
 import { Item } from '../entity/Item';
 import { ItemType } from '../entity/item-type';
-import { MediaFile } from '../entity/media-file';
 import { Publisher } from '../entity/publisher';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { EventLogStore, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { BaseScraper } from './abstract/base-scraper';
-import cheerio = require('cheerio');
 import { logger } from '../utils/logger-factory';
 import { Sentry, TYPES } from '@irohalab/mira-shared';
 import { ConfigManager } from '../utils/config-manager';
+import { downloadFile } from '../utils/download';
+import { getTorrentInfo } from '../utils/torrent-utils';
+import { unlink } from 'fs/promises';
+import cheerio = require('cheerio');
 
 @injectable()
 export class NyaaScraper extends BaseScraper<number> {
@@ -118,28 +119,12 @@ export class NyaaScraper extends BaseScraper<number> {
             item.magnet_uri = panels.eq(0).find('.panel-footer > a:nth-child(2)').attr('href');
             item.torrent_url = NyaaScraper._host + panels.eq(0).find('.panel-footer > a:nth-child(1)').attr('href');
             item.files = [];
-            let list = panels.eq(2).find('.torrent-file-list > ul > li > .folder');
-            if (list.length === 1) {
-                let files = Array.from(panels.eq(2).find('.torrent-file-list > ul > li > ul > li'));
-                files.forEach(file => {
-                let mediaFile = new MediaFile();
-                mediaFile.size = $('.file-size', file).text().slice(1, -1);
-                $('.file-size', file).remove();
-                mediaFile.path = $(file).text().trim();
-                mediaFile.ext = extname(mediaFile.path);
-                mediaFile.name = basename(mediaFile.path, mediaFile.ext);
-                item.files.push(mediaFile);
-                });
-            } else {
-                let mediaFile = new MediaFile();
-                let file = panels.eq(2).find('.torrent-file-list > ul > li');
-                mediaFile.size = file.find('.file-size').text().slice(1, -1);
-                file.find('.file-size').remove();
-                mediaFile.path = file.text().trim();
-                mediaFile.ext = extname(mediaFile.path);
-                mediaFile.name = basename(mediaFile.path, mediaFile.ext);
-                item.files.push(mediaFile);
-            }
+            logger.info('start to get torrent info for item#' + item.id);
+            const torrentPath = await downloadFile(item.torrent_url);
+            const info = await getTorrentInfo(torrentPath);
+            item.files = info.files;
+            console.log(info.files);
+            await unlink(torrentPath);
         } catch (e: any) {
             await this.handleTimeout(e as unknown as Error);
             if (e.response) {
