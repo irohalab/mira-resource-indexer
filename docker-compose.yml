@@ -3,8 +3,7 @@ services:
   mongo:
     platform: linux/x86_64
     image: mongo:4.2.2
-    ports:
-      - "27017:27017"
+    network_mode: host
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${DB_USER-admin}"
       MONGO_INITDB_ROOT_PASSWORD: "${DB_PASS-123456}"
@@ -12,8 +11,7 @@ services:
   rabbitmq:
     platform: linux/x86_64
     image: "rabbitmq:4.1"
-    ports:
-      - "5672:5672"
+    network_mode: host
     environment:
       RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER-ciuser}"
       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS-cipassword}"
@@ -25,10 +23,8 @@ services:
     cap_add:
       - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker 
     image: "indexer"
+    network_mode: host
     command: npm run start
-    ports:
-      - "9229:9229"
-      - "35120:35120"
     logging:
       driver: json-file
       options:

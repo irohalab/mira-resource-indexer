@@ -14,9 +14,8 @@ x-web-common:
 services:
   dmhy:
     << : *web-common
+    network_mode: host
     command: node --title=dmhy dist/main.js
-    ports:
-      - "4000:4000"
     environment:
       DB_HOST: "${DB_HOST-store}"
       DB_PORT: "${DB_PORT-27017}"
@@ -35,9 +34,8 @@ services:
 
   bangumi_moe:
     << : *web-common
+    network_mode: host
     command: node --title=bangumi_moe dist/main.js
-    ports:
-      - "4200:4200"
     environment:
       DB_HOST: "${DB_HOST-store}"
       DB_PORT: "${DB_PORT-27017}"
@@ -56,9 +54,8 @@ services:
 
   nyaa:
     << : *web-common
+    network_mode: host
     command: node --title=nyaa dist/main.js
-    ports:
-      - "4300:4300"
     environment:
       DB_HOST: "${DB_HOST-store}"
       DB_PORT: "${DB_PORT-27017}"
@@ -77,9 +74,8 @@ services:
 
   acg_rip:
     << : *web-common
+    network_mode: host
     command: node --title=acg_rip dist/main.js
-    ports:
-      - "4400:4400"
     environment:
       DB_HOST: "${DB_HOST-store}"
       DB_PORT: "${DB_PORT-27017}"
@@ -98,9 +94,8 @@ services:
 
   mikanani_me:
     <<: *web-common
+    network_mode: host
     command: node --title=acg_rip dist/main.js
-    ports:
-      - "4500:4500"
     environment:
       DB_HOST: "${DB_HOST-store}"
       DB_PORT: "${DB_PORT-27017}"

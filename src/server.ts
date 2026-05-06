@@ -35,6 +35,6 @@ export class RESTServer {
             logger.info('stopping REST server...');
             httpServer.close();
         });
-        return httpServer.listen(this._config.getServerPort(), this._config.getServerPort());
+        return httpServer.listen(this._config.getServerPort(), this._config.getServerHost());
     }
 }

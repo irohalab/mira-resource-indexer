@@ -93,6 +93,17 @@ switch (config.getMode()) {
 const scraper = container.get<Scraper>(TYPES_IDX.Scraper);
 const databaseService = container.get<DatabaseService>(DatabaseService);
 
+process.on('unhandledRejection', (reason) => {
+    logger.error('unhandled_rejection', { reason: String(reason), stack: (reason as Error)?.stack });
+    sentry.capture(reason as Error);
+});
+
+process.on('uncaughtException', (err) => {
+    logger.error('uncaught_exception', { message: err.message, stack: err.stack });
+    sentry.capture(err);
+    process.exit(1);
+});
+
 // catches Ctrl+C event
 process.on('SIGINT', async () => {
     logger.info('stopping scrapper and store...');
@@ -104,7 +115,11 @@ process.on('SIGINT', async () => {
 (async () => {
     await databaseService.onStart();
     await scraper.start();
-})();
+})().catch((err) => {
+    logger.error('startup_error', { message: err.message, stack: err.stack });
+    sentry.capture(err);
+    process.exit(1);
+});
 
 sentry.capture(`starting ${config.getMode()} scraper, REST service listening ${config.getServerHost()}:${config.getServerPort()}`);
 
