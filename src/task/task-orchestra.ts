@@ -99,8 +99,10 @@ export class TaskOrchestra {
             await this._throttleStore.setLastMainTaskTime();
             await this._scraper.executeTask(new CommonTask(TaskType.MAIN));
         }
-        this._checkMainTaskTimerId = setTimeout(async () => {
-            await this.checkMainTask(actualInterval);
+        this._checkMainTaskTimerId = setTimeout(() => {
+            this.checkMainTask(actualInterval).catch((err) => {
+                logger.error('check_main_task_error', { message: err.message, stack: err.stack });
+            });
         }, actualInterval);
     }
 
@@ -115,8 +117,10 @@ export class TaskOrchestra {
             }
         }
         const checkInterval = this._taskTimingFactory(this._config.getMinFailedTaskCheckInterval() / 2);
-        this._checkFailedTaskTimerId = setTimeout(async () => {
-            await this.checkFailedTask();
+        this._checkFailedTaskTimerId = setTimeout(() => {
+            this.checkFailedTask().catch((err) => {
+                logger.error('check_failed_task_error', { message: err.message, stack: err.stack });
+            });
         }, checkInterval);
     }
 
