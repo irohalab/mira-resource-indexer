@@ -17,7 +17,6 @@
 import 'reflect-metadata';
 import { Container, interfaces } from 'inversify';
 import { BangumiMoe } from './scraper/bangumi-moe';
-import { DmhyScraper } from './scraper/dmhy';
 import { NyaaScraper } from './scraper/nyaa';
 import { AcgRipScraper } from './scraper/acg-rip';
 import { RESTServer } from './server';
@@ -37,6 +36,7 @@ import { ACG_RIP, BANGUMI_MOE, ConfigManager, DMHY, MIKANANI_ME, NYAA } from './
 import { hostname } from 'os';
 import { MongodbEventLogStore } from './storage/mongodb-event-log-store';
 import { MikananiMe } from './scraper/mikanani-me';
+import { DmhyLightScraper } from './scraper/dmhy-light';
 
 /* Initialize container */
 const container = new Container();
@@ -68,7 +68,7 @@ container.bind<TaskOrchestra>(TaskOrchestra).toSelf().inTransientScope();
 switch (config.getMode()) {
     case DMHY:
         container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
-        container.bind<Scraper>(TYPES_IDX.Scraper).to(DmhyScraper).inSingletonScope();
+        container.bind<Scraper>(TYPES_IDX.Scraper).to(DmhyLightScraper).inSingletonScope();
         break;
     case BANGUMI_MOE:
         container.bind<ItemStorage<string>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inSingletonScope();
