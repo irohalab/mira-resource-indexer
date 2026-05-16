@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ProtocolError, TimeoutError } from 'puppeteer';
+import { TimeoutError } from 'puppeteer-core';
 import { Item } from '../../entity/Item';
 import { MainTask } from '../../task/main-task';
 import { SubTask } from '../../task/sub-task';
