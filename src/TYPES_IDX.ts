@@ -21,11 +21,15 @@ import { EventLog } from './entity/EventLog';
 
 export const TYPES_IDX = {
     ItemStorage: Symbol.for('ItemStorage'),
+    ItemStorageMap: Symbol.for('ItemStorageMap'),
     Scraper: Symbol.for('Scraper'),
     TaskStorage: Symbol.for('TaskStorage'),
     TaskTimingFactory: Symbol.for('TaskTiming'),
     ThrottleStore: Symbol.for('ThrottleStore'),
-    EventLogStore: Symbol.for('EventLogStore')
+    EventLogStore: Symbol.for('EventLogStore'),
+    Mode: Symbol.for('Mode'),
+    DBName: Symbol.for('DBName'),
+    AsyncMutex: Symbol.for('AsyncMutex')
 };
 
 export type LogType = 'info' | 'warn' | 'error';
@@ -72,6 +76,7 @@ export interface ThrottleStore {
     setLastMainTaskTime(): Promise<void>;
     getLastFailedTaskTime(): Promise<number>
     setLastFailedTaskTime(): Promise<void>;
+    tryClaimTaskTime(name: string, minInterval: number): Promise<boolean>;
 }
 
 export interface EventLogStore {
@@ -88,6 +93,7 @@ export interface EventLogStore {
 }
 
 export interface Scraper {
+    initMQ(): Promise<void>;
     start(): Promise<any>;
     end(): Promise<any>;
 

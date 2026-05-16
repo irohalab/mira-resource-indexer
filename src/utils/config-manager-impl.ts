@@ -17,20 +17,31 @@
 import { MikroORMOptions } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/knex';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
-import { ConfigManager } from './config-manager';
+import { ACG_RIP, BANGUMI_MOE, ConfigManager, DMHY, MIKANANI_ME, NYAA } from './config-manager';
 import { injectable } from 'inversify';
 import { Options } from 'amqplib';
 import * as process from 'node:process';
 
+export const DEFAULT_MODE_LIST = [DMHY, ACG_RIP, NYAA, MIKANANI_ME, BANGUMI_MOE];
+
 @injectable()
 export class ConfigManagerImpl implements ConfigManager {
-    prepare(): void {
-        if (!this.getMode()) {
-            throw new Error('No mode specified!');
+    getModeList(): string[] {
+        const listStr = process.env.MODE_LIST; // a comma separated mode list
+        if (!listStr) {
+            return DEFAULT_MODE_LIST;
         }
-    }
-    getMode(): string {
-        return process.env.INDEXER_MODE;
+        const modeList = listStr.split(',');
+        if (modeList.length === 0) {
+            return DEFAULT_MODE_LIST;
+        }
+        const result = [];
+        for (const mode of modeList) {
+            if (DEFAULT_MODE_LIST.includes(mode)) {
+                result.push(mode);
+            }
+        }
+        return result;
     }
     getDbMode(): string {
         return process.env.DB_MODE || 'mongo';
@@ -43,13 +54,6 @@ export class ConfigManagerImpl implements ConfigManager {
     }
     getDbUser(): string {
         return process.env.DB_USER || process.env.USER;
-    }
-    getDbName(): string {
-        if (process.env.DB_NAME) {
-            return process.env.DB_NAME;
-        } else {
-            return this.getMode() + '_indexer';
-        }
     }
     getDbPass(): string {
         return process.env.DB_PASS || '123456';

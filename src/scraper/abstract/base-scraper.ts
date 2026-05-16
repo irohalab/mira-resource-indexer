@@ -78,6 +78,10 @@ export abstract class BaseScraper<T> implements Scraper {
         }
     }
 
+    public async initMQ(): Promise<void> {
+        await this._taskOrchestra.initMQ();
+    }
+
     public async start(): Promise<any> {
         // await this._taskOrchestra.queue(new MainTask(TaskType.MAIN));
         await this._taskOrchestra.start(this);

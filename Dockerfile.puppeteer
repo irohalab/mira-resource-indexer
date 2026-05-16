@@ -1,0 +1,21 @@
+FROM ghcr.io/puppeteer/puppeteer:latest AS base
+WORKDIR /home/pptruser
+
+FROM base AS dev
+COPY --chown=pptruser:pptruser package.json ./
+COPY --chown=pptruser:pptruser package-lock.json ./
+RUN npm ci
+COPY --chown=pptruser:pptruser . ./
+
+FROM dev AS prod
+RUN npm run build
+
+USER root
+RUN mkdir -p /opt/google/chrome && \
+    CHROME_PATH=$(find /home/pptruser/.cache/puppeteer -name "chrome" -type f -path "*/chrome-linux64/*" | head -1) && \
+    ln -s "$CHROME_PATH" /opt/google/chrome/chrome
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /mira-bcms && chown pptruser:pptruser /mira-bcms
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]

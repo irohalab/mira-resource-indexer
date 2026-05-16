@@ -42,4 +42,14 @@ export class InMemoryThrottleStore implements ThrottleStore {
         return Promise.resolve();
     }
 
+    tryClaimTaskTime(name: string, minInterval: number): Promise<boolean> {
+        const key = name === 'MainTask' ? 'main' : 'failed';
+        const last = this.tasks[key];
+        if (Date.now() - last >= minInterval) {
+            this.tasks[key] = Date.now();
+            return Promise.resolve(true);
+        }
+        return Promise.resolve(false);
+    }
+
 }

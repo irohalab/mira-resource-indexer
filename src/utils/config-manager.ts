@@ -23,12 +23,11 @@ export const ACG_RIP = 'acg_rip';
 export const MIKANANI_ME = 'mikanani_me';
 
 export interface ConfigManager extends BaseConfigManager {
-    getMode(): string;
+    getModeList(): string[];
     getDbMode(): string;
     getDbHost(): string;
     getDbPort(): number;
     getDbUser(): string;
-    getDbName(): string;
     getDbPass(): string;
     getAuthSource(): string; // see: https://docs.mongodb.com/manual/core/security-users/#user-authentication-database
     getServerHost(): string;
@@ -39,6 +38,4 @@ export interface ConfigManager extends BaseConfigManager {
     getMaxPageNo(): number; // max page number for scrapping
     getMaxSearchCount(): number; // max search result count
     getMaxRetryCount(): number; // max retry times for a task
-
-    prepare(): void;
 }

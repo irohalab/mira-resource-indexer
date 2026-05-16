@@ -20,7 +20,7 @@ import { DatabaseService } from '../service/database-service';
 import { MainTask } from '../task/main-task';
 import { SubTask } from '../task/sub-task';
 import { Task, TaskType } from '../task/task-types';
-import { TaskQueue } from '../TYPES_IDX';
+import { TaskQueue, TYPES_IDX } from '../TYPES_IDX';
 import { TYPES } from '@irohalab/mira-shared';
 import { ConfigManager } from '../utils/config-manager';
 
@@ -35,6 +35,7 @@ export class MongodbTaskStore implements TaskQueue {
     private _failedTaskCollectionName = 'failed_task';
 
     constructor(private _databaseService: DatabaseService,
+                @inject(TYPES_IDX.DBName) private dbName: string,
                 @inject(TYPES.ConfigManager) private _config: ConfigManager) {
         this._databaseService.checkCollection([this._taskCollectionName, this._failedTaskCollectionName]);
     }
@@ -69,7 +70,7 @@ export class MongodbTaskStore implements TaskQueue {
 
     private async push(collection: string, task: Task): Promise<boolean> {
         await this._databaseService.transaction(async (client) => {
-            const taskCollection = client.db(this._config.getDbName()).collection(collection);
+            const taskCollection = client.db(this.dbName).collection(collection);
             let filterObj: any = {type: task.type};
             if (task.type === TaskType.MAIN) {
                 if (task instanceof MainTask) {

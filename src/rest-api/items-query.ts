@@ -15,24 +15,31 @@
  */
 
 import { inject } from 'inversify';
-import { controller, httpGet, queryParam, BaseHttpController, interfaces } from 'inversify-express-utils';
+import { controller, httpGet, queryParam, requestParam, BaseHttpController, interfaces } from 'inversify-express-utils';
 import { ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { JsonResultFactory } from '@irohalab/mira-shared';
 
-@controller('/item')
-export class ItemsQuery<T> extends BaseHttpController implements interfaces.Controller {
+@controller('/:mode/item')
+export class ItemsQuery extends BaseHttpController implements interfaces.Controller {
 
-    constructor(@inject(TYPES_IDX.ItemStorage) private _storage: ItemStorage<T>) {
+    constructor(@inject(TYPES_IDX.ItemStorageMap) private _storageMap: Map<string, ItemStorage<any>>) {
         super();
     }
 
     @httpGet('/')
-    public async search(@queryParam('keyword') keyword: string): Promise<interfaces.IHttpActionResult> {
+    public async search(
+        @requestParam('mode') mode: string,
+        @queryParam('keyword') keyword: string
+    ): Promise<interfaces.IHttpActionResult> {
+        const storage = this._storageMap.get(mode);
+        if (!storage) {
+            return this.json({ error: `Unknown mode: ${mode}` }, 404);
+        }
         if (!keyword) {
             return this.badRequest('keyword required');
         }
         try {
-            let items = await this._storage.searchItem(keyword);
+            let items = await storage.searchItem(keyword);
             if (!items) {
                 items = [];
             }
