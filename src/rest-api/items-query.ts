@@ -31,7 +31,8 @@ export class ItemsQuery extends BaseHttpController implements interfaces.Control
         @requestParam('mode') mode: string,
         @queryParam('keyword') keyword: string
     ): Promise<interfaces.IHttpActionResult> {
-        const storage = this._storageMap.get(mode);
+        const normalizedMode = mode.replace(/-/g, '_');
+        const storage = this._storageMap.get(normalizedMode);
         if (!storage) {
             return this.json({ error: `Unknown mode: ${mode}` }, 404);
         }
