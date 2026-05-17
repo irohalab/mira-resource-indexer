@@ -18,28 +18,36 @@ import { readFile } from 'fs';
 import { basename, extname } from 'path';
 import { promisify } from 'util';
 import { MediaFile } from '../entity/media-file';
-import parseTorrent from 'parse-torrent';
-import * as ParseTorrentFile from 'parse-torrent';
 
 const readFilePromise = promisify(readFile);
 
+// Use indirect import to bypass ts-node converting import() to require(),
+// which fails because parse-torrent v11 is ESM-only.
+const dynamicImport = new Function('specifier', 'return import(specifier)');
+
+async function loadParseTorrent() {
+    const mod = await dynamicImport('parse-torrent');
+    return { parseTorrent: mod.default, toMagnetURI: mod.toMagnetURI };
+}
+
 export async function getTorrentFiles(torrentPath: string) {
+    const { parseTorrent } = await loadParseTorrent();
     const file = await readFilePromise(torrentPath);
-    const torrent = parseTorrent(file) as ParseTorrentFile.Instance;
+    const torrent = await parseTorrent(file);
     return torrent.files;
 }
 
 export async function getTorrentInfo(torrentPath: string, withMagnet?: boolean) {
+    const { parseTorrent, toMagnetURI } = await loadParseTorrent();
     const torrent = await readFilePromise(torrentPath);
-    const parsed = parseTorrent(torrent);
+    const parsed = await parseTorrent(torrent);
 
-    let mediaFiles: MediaFile[];
-    let magnet_uri;
+    let magnet_uri: string | undefined;
     if (withMagnet) {
-        magnet_uri =  parseTorrent.toMagnetURI(parsed);
+        magnet_uri = toMagnetURI(parsed as any);
     }
-    const files = await getTorrentFiles(torrentPath);
-    mediaFiles = files.map(file => {
+    const files = parsed.files || [];
+    const mediaFiles: MediaFile[] = files.map((file: any) => {
         const mediaFile = new MediaFile();
         mediaFile.size = file.length.toString();
         mediaFile.path = file.path;

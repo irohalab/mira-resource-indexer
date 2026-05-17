@@ -113,7 +113,7 @@ export class AcgRipScraper extends BaseScraper<number> {
         let statusCode = -1;
         try {
             const subTaskUrl = `${AcgRipScraper._host}${item.uri}`;
-            logger.info('execute_sub_task', { item });
+            logger.info('acg_rip execute_sub_task', { item });
             const resp = await Axios.get(subTaskUrl);
             statusCode = resp.status;
 
