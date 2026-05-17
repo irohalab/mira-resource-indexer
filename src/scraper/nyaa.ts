@@ -123,7 +123,7 @@ export class NyaaScraper extends BaseScraper<number> {
             const torrentPath = await downloadFile(item.torrent_url);
             const info = await getTorrentInfo(torrentPath);
             item.files = info.files;
-            console.log(info.files);
+            // console.log(info.files);
             await unlink(torrentPath);
         } catch (e: any) {
             await this.handleTimeout(e as unknown as Error);

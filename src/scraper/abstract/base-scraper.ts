@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ProtocolError, TimeoutError } from 'puppeteer';
+import { TimeoutError } from 'puppeteer-core';
 import { Item } from '../../entity/Item';
 import { MainTask } from '../../task/main-task';
 import { SubTask } from '../../task/sub-task';
@@ -76,6 +76,10 @@ export abstract class BaseScraper<T> implements Scraper {
             }
             return TaskStatus.Fail;
         }
+    }
+
+    public async initMQ(): Promise<void> {
+        await this._taskOrchestra.initMQ();
     }
 
     public async start(): Promise<any> {

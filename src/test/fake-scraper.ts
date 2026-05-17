@@ -49,6 +49,10 @@ export class FakeScraper implements Scraper {
         return Promise.resolve(null);
     }
 
+    public async initMQ(): Promise<void> {
+        await this._taskOrchestra.initMQ();
+    }
+
     public async executeTask(task: Task): Promise<TaskStatus> {
         if (task.type === TaskType.SUB) {
             return await this.doExecuteSubTask(task as FakeTask);

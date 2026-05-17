@@ -15,7 +15,7 @@
  */
 
 import { inject, injectable } from 'inversify';
-import { Browser, HTTPRequest, launch, Page } from 'puppeteer';
+import { Browser, HTTPRequest, launch, Page } from 'puppeteer-core';
 import { resolve } from 'url';
 import { promises } from 'fs';
 import { downloadFile } from '../utils/download';
@@ -132,7 +132,7 @@ export class DmhyScraper extends BaseScraper<number> {
             let items = [];
             for (let tr of trList) {
                 let item = new Item<number>();
-                item.uri = trimDomain(await page.evaluate(el => {
+                item.uri = trimDomain(await page.evaluate((el: Element) => {
                     let titleLink = el.querySelector('td.title>a');
                     if (titleLink && titleLink.getAttribute('href')) {
                         return titleLink.getAttribute('href').trim();
@@ -146,10 +146,10 @@ export class DmhyScraper extends BaseScraper<number> {
                 item.type = new ItemType<number>();
                 item.type.id = this.getIdFromUri(
                     await page.evaluate(
-                        el => el.querySelector('td:nth-child(2) > a').getAttribute('href'), tr),
+                        (el: Element) => el.querySelector('td:nth-child(2) > a').getAttribute('href'), tr),
                     /\/topics\/list\/sort_id\/(\d+)/);
                 item.type.name = await page.evaluate(
-                    el => el.querySelector('td:nth-child(2) > a font').textContent.trim(), tr);
+                    (el: Element) => el.querySelector('td:nth-child(2) > a font').textContent.trim(), tr);
             }
             let newIds = await this._store.filterItemNotStored(items.map(item => item.id));
             let newItems = items.filter(item => {
@@ -189,7 +189,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 return 404;
             }
 
-            item.title = await page.evaluate(el => {
+            item.title = await page.evaluate((el: Element) => {
                 const h3El = el.querySelector('.topic-main > .topic-title > h3');
                 return h3El.textContent.trim();
             }, mainArea);
@@ -197,10 +197,10 @@ export class DmhyScraper extends BaseScraper<number> {
             let publisherElement = await mainArea.$('.user-sidebar > .avatar.box:nth-child(1) > p:nth-child(2) > a');
             // console.log(publisherElement.toString());
             item.publisher = new Publisher<number>();
-            item.publisher.id = this.getIdFromUri(await page.evaluate(el => el.getAttribute('href'), publisherElement),
+            item.publisher.id = this.getIdFromUri(await page.evaluate((el: Element) => el.getAttribute('href'), publisherElement),
                 /\/topics\/list\/user_id\/(\d+)/);
             // console.log(item.publisher);
-            item.publisher.name = await page.evaluate(el => {
+            item.publisher.name = await page.evaluate((el: Element) => {
                 let name = el.textContent;
                 if (name) {
                     name = name.trim();
@@ -211,9 +211,9 @@ export class DmhyScraper extends BaseScraper<number> {
             let teamElement = await mainArea.$('.user-sidebar > .avatar.box:nth-child(2) > p:nth-child(2) > a');
             if (teamElement) {
                 item.team = new Team<number>();
-                item.team.id = this.getIdFromUri(await page.evaluate(el => el.getAttribute('href'), teamElement),
+                item.team.id = this.getIdFromUri(await page.evaluate((el: Element) => el.getAttribute('href'), teamElement),
                     /\/topics\/list\/team_id\/(\d+)/);
-                item.team.name = await page.evaluate(el => {
+                item.team.name = await page.evaluate((el: Element) => {
                     let name = el.textContent;
                     if (name) {
                         name = name.trim();
@@ -223,7 +223,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 // console.log(item.team);
             }
             let resourceInfoElement = await mainArea.$('.info.resource-info.right > ul');
-            item.timestamp = toUTCDate(await page.evaluate(el => {
+            item.timestamp = toUTCDate(await page.evaluate((el: Element) => {
                 const spanEl = el.querySelector('li:nth-child(2) > span');
                 let timeStr = spanEl.textContent;
                 if (timeStr) {
@@ -233,11 +233,11 @@ export class DmhyScraper extends BaseScraper<number> {
             }, resourceInfoElement), 8);
             // console.log(item.timestamp);
             let btResourceElement = await mainArea.$('#tabs-1');
-            item.torrent_url = resolve('https://', await page.evaluate(el => {
+            item.torrent_url = resolve('https://', await page.evaluate((el: Element) => {
                 const anchor = el.querySelector('p:nth-child(1) > a');
                 return anchor.getAttribute('href');
             }, btResourceElement));
-            item.magnet_uri = await page.evaluate(el => {
+            item.magnet_uri = await page.evaluate((el: Element) => {
                 const anchor = el.querySelector('#a_magnet');
                 return anchor.getAttribute('href');
             }, btResourceElement);

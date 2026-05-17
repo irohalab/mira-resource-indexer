@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Browser, HTTPRequest, launch, Page } from 'puppeteer';
+import { Browser, HTTPRequest, launch, Page } from 'puppeteer-core';
 import { inject } from 'inversify';
 import { TaskOrchestra } from '../task/task-orchestra';
 import { Item } from '../entity/Item';
@@ -133,7 +133,7 @@ export class MikananiMe extends BaseScraper<string> {
             for (const tr of trList) {
                 const item = new Item<string>();
 
-                item.uri = await page.evaluate(el => {
+                item.uri = await page.evaluate((el: Element) => {
                     let titleLink = el.querySelector('td:nth-child(3)>a.magnet-link-wrap');
                     if (titleLink && titleLink.getAttribute('href')) {
                         return titleLink.getAttribute('href').trim();
@@ -156,7 +156,7 @@ export class MikananiMe extends BaseScraper<string> {
                 const tr = trList[i];
                 const item = new Item<string>();
                 // datetime
-                item.timestamp = toUTCDate(await page.evaluate(el => {
+                item.timestamp = toUTCDate(await page.evaluate((el: Element) => {
                     let dateTextTd = el.querySelector('td:first-child');
                     let dateText = '';
                     if (dateTextTd) {
@@ -174,7 +174,7 @@ export class MikananiMe extends BaseScraper<string> {
                 }, tr), 8);
 
                 item.team = new Team();
-                item.team.id = await page.evaluate((el) => {
+                item.team.id = await page.evaluate((el: Element) => {
                     const teamLink = el.querySelector('td:nth-child(2) > a.magnet-link-wrap');
                     if (teamLink && teamLink.getAttribute('href')) {
                         const teamLinkUri = teamLink.getAttribute('href').trim();
@@ -186,7 +186,7 @@ export class MikananiMe extends BaseScraper<string> {
                     return null;
                 }, tr);
 
-                item.team.name = await page.evaluate(el => {
+                item.team.name = await page.evaluate((el: Element) => {
                     const teamLink = el.querySelector('td:nth-child(2) > a.magnet-link-wrap');
                     if (teamLink) {
                         return teamLink.textContent.trim();
@@ -198,7 +198,7 @@ export class MikananiMe extends BaseScraper<string> {
                 item.publisher.id = item.team.id;
                 item.publisher.name = item.team.name;
 
-                item.title = await page.evaluate(el => {
+                item.title = await page.evaluate((el: Element) => {
                     let titleLink = el.querySelector('td:nth-child(3)>a.magnet-link-wrap');
                     if (titleLink) {
                         return titleLink.textContent.trim();
@@ -206,7 +206,7 @@ export class MikananiMe extends BaseScraper<string> {
                     return '';
                 }, tr);
 
-                item.magnet_uri = await page.evaluate(el => {
+                item.magnet_uri = await page.evaluate((el: Element) => {
                     let magnetLink = el.querySelector('td:nth-child(3) > a.js-magnet.magnet-link');
                     if (magnetLink && magnetLink.getAttribute('data-clipboard-text')) {
                         return magnetLink.getAttribute('data-clipboard-text').trim();
@@ -214,7 +214,7 @@ export class MikananiMe extends BaseScraper<string> {
                     return null;
                 }, tr);
 
-                item.torrent_url = await page.evaluate(el => {
+                item.torrent_url = await page.evaluate((el: Element) => {
                     let torrentLink = el.querySelector('td:nth-child(5) > a');
                     if (torrentLink && torrentLink.getAttribute('href')) {
                         return torrentLink.getAttribute('href').trim();

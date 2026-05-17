@@ -42,11 +42,11 @@ export class TaskOrchestraSpec {
         this._container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactory<number>(MockTaskTiming);
         this._container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(InMemoryTaskStore).inSingletonScope();
         this._container.bind<RabbitMQService>(TYPES.RabbitMQService).to(RascalImpl).inSingletonScope();
+        this._container.bind<string>(TYPES_IDX.Mode).toConstantValue('test');
         this._container.bind<TaskOrchestra>(TaskOrchestra).toSelf();
         this._container.bind<Scraper>(TYPES_IDX.Scraper).to(FakeScraper).inTransientScope();
         this._container.bind<ThrottleStore>(TYPES_IDX.ThrottleStore).to(InMemoryThrottleStore).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
-        this._config.prepare();
         (this._config as unknown as FakeConfigManager).minCheckInterval = MIN_INTERVAL * 3;
         (this._config as unknown as FakeConfigManager).minInterval = MIN_INTERVAL;
         (this._config as unknown as FakeConfigManager).minFailedTaskCheckInterval = MIN_INTERVAL * 2;

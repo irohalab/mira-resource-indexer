@@ -1,10 +1,7 @@
-version: "3.7"
 # before start we need set DOCKER_TAG
 x-web-common:
   &web-common
-  image: "docker.pkg.github.com/irohalab/mira-resource-indexer/indexer:${DOCKER_TAG}"
-  cap_add:
-    - SYS_ADMIN  # ref https://github.com/GoogleChrome/puppeteer/blob/v1.12.1/docs/troubleshooting.md#running-puppeteer-in-docker
+  image: "ghcr.io/irohalab/mira-resource-indexer/indexer:${DOCKER_TAG}"
   logging:
     driver: "json-file"
     options:
@@ -12,102 +9,21 @@ x-web-common:
       max-file: "3"
 
 services:
-  dmhy:
+  indexer:
     << : *web-common
     network_mode: host
-    command: node --title=dmhy dist/main.js
+    command: node --title=indexer dist/main.js
     environment:
       DB_HOST: "${DB_HOST-store}"
       DB_PORT: "${DB_PORT-27017}"
       DB_USER: "${DB_USER-admin}"
       DB_PASS: "${DB_PASS-123456}"
-      INDEXER_MODE: "dmhy"
-      DB_NAME: "dmhy_indexer"
+      MODE_LIST: "${MODE_LIST-dmhy,bangumi_moe,nyaa,acg_rip,mikanani_me}"
       MIN_INTERVAL: "${MIN_INTERVAL-10000}"
       MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
       MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
       MAX_PAGE_NO: ${MAX_PAGE_NO-5}
       MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
-      SERVER_PORT: "4000"
-      SENTRY_DSN: "${SENTRY_DSN}"
-      AMQP_URL: ${AMQP_URL}
-
-  bangumi_moe:
-    << : *web-common
-    network_mode: host
-    command: node --title=bangumi_moe dist/main.js
-    environment:
-      DB_HOST: "${DB_HOST-store}"
-      DB_PORT: "${DB_PORT-27017}"
-      DB_USER: "${DB_USER-admin}"
-      DB_PASS: "${DB_PASS-123456}"
-      INDEXER_MODE: "bangumi_moe"
-      DB_NAME: "bangumi_moe_indexer"
-      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
-      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
-      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
-      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
-      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
-      SERVER_PORT: "4200"
-      SENTRY_DSN: "${SENTRY_DSN}"
-      AMQP_URL: ${AMQP_URL}
-
-  nyaa:
-    << : *web-common
-    network_mode: host
-    command: node --title=nyaa dist/main.js
-    environment:
-      DB_HOST: "${DB_HOST-store}"
-      DB_PORT: "${DB_PORT-27017}"
-      DB_USER: "${DB_USER-admin}"
-      DB_PASS: "${DB_PASS-123456}"
-      INDEXER_MODE: "nyaa"
-      DB_NAME: "nyaa_indexer"
-      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
-      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
-      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
-      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
-      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
-      SERVER_PORT: "4300"
-      SENTRY_DSN: "${SENTRY_DSN}"
-      AMQP_URL: ${AMQP_URL}
-
-  acg_rip:
-    << : *web-common
-    network_mode: host
-    command: node --title=acg_rip dist/main.js
-    environment:
-      DB_HOST: "${DB_HOST-store}"
-      DB_PORT: "${DB_PORT-27017}"
-      DB_USER: "${DB_USER-admin}"
-      DB_PASS: "${DB_PASS-123456}"
-      INDEXER_MODE: "acg_rip"
-      DB_NAME: "acg_rip_indexer"
-      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
-      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
-      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
-      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
-      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
-      SERVER_PORT: "4400"
-      SENTRY_DSN: "${SENTRY_DSN}"
-      AMQP_URL: ${AMQP_URL}
-
-  mikanani_me:
-    <<: *web-common
-    network_mode: host
-    command: node --title=acg_rip dist/main.js
-    environment:
-      DB_HOST: "${DB_HOST-store}"
-      DB_PORT: "${DB_PORT-27017}"
-      DB_USER: "${DB_USER-admin}"
-      DB_PASS: "${DB_PASS-123456}"
-      INDEXER_MODE: "mikanani_me"
-      DB_NAME: "mikanani_indexer"
-      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
-      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
-      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
-      MAX_PAGE_NO: ${MAX_PAGE_NO-5}
-      MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
-      SERVER_PORT: "4500"
+      SERVER_PORT: "${SERVER_PORT-4000}"
       SENTRY_DSN: "${SENTRY_DSN}"
       AMQP_URL: ${AMQP_URL}

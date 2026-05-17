@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 import {
     Scraper,
     TASK_EXCHANGE,
@@ -31,6 +31,7 @@ import { MQMessage, RabbitMQService, TYPES } from '@irohalab/mira-shared';
 import { promisify } from 'util';
 import Timeout = NodeJS.Timeout;
 import { ConfigManager } from '../utils/config-manager';
+import { AsyncMutex } from '../utils/async-mutex';
 
 const sleep = promisify(setTimeout) as (t: number) => Promise<unknown>;
 
@@ -50,17 +51,30 @@ export class TaskOrchestra {
                 @inject(TYPES_IDX.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number,
                 @inject(TYPES.RabbitMQService) private _mqService: RabbitMQService,
                 @inject(TYPES_IDX.TaskStorage) private _taskStore: TaskQueue,
-                @inject(TYPES_IDX.ThrottleStore) private _throttleStore: ThrottleStore) {
-        this._exchangeName = `${TASK_EXCHANGE}_${this._config.getMode()}`;
-        this._queueName = `${TASK_QUEUE}_${this._config.getMode()}`;
-        this._taskRoutingKey = `${TASK_ROUTING_KEY}_${this._config.getMode()}`;
+                @inject(TYPES_IDX.ThrottleStore) private _throttleStore: ThrottleStore,
+                @inject(TYPES_IDX.Mode) private mode: string,
+                @inject(TYPES_IDX.AsyncMutex) @optional() private _mutex: AsyncMutex | null) {
+        this._exchangeName = `${TASK_EXCHANGE}_${this.mode}`;
+        this._queueName = `${TASK_QUEUE}_${this.mode}`;
+        this._taskRoutingKey = `${TASK_ROUTING_KEY}_${this.mode}`;
+    }
+
+    /**
+     * Register exchanges, queues, and bindings with the message broker.
+     * Must be called on ALL orchestras before any of them calls start(),
+     * because RascalImpl creates the broker lazily on the first consume().
+     */
+    public async initMQ(): Promise<void> {
+        if (this._mutex) {
+            this._mutex.registerMode(this.mode);
+        }
+        await this._mqService.initPublisher(this._exchangeName, 'direct', this._taskRoutingKey);
+        await this._mqService.initConsumer(this._exchangeName, 'direct', this._queueName, this._taskRoutingKey);
     }
 
     public async start(scraper: Scraper): Promise<void> {
         let actualInterval = this._taskTimingFactory(this._config.getMinInterval());
         this._scraper = scraper;
-        await this._mqService.initPublisher(this._exchangeName, 'direct', this._taskRoutingKey);
-        await this._mqService.initConsumer(this._exchangeName, 'direct', this._queueName, this._taskRoutingKey);
         await this._mqService.consume(this._queueName, async (msg: MQMessage) => {
             const task = msg as Task;
             const currentTime = Date.now();
@@ -68,12 +82,19 @@ export class TaskOrchestra {
                 await sleep(2000);
                 return false;
             }
-            this._lastExeTime = Date.now();
-            let result = await this._scraper.executeTask(task);
-            if (result === TaskStatus.NeedRetry) {
-                await this._taskStore.offerFailedTask(task);
-            } else if (result === TaskStatus.Success && task.type === TaskType.MAIN) {
-                this._lastMainTaskExeTime = Date.now();
+            const executeTask = async () => {
+                this._lastExeTime = Date.now();
+                let result = await this._scraper.executeTask(task);
+                if (result === TaskStatus.NeedRetry) {
+                    await this._taskStore.offerFailedTask(task);
+                } else if (result === TaskStatus.Success && task.type === TaskType.MAIN) {
+                    this._lastMainTaskExeTime = Date.now();
+                }
+            };
+            if (this._mutex) {
+                await this._mutex.runExclusive(this.mode, executeTask);
+            } else {
+                await executeTask();
             }
             return true;
         });
@@ -91,13 +112,20 @@ export class TaskOrchestra {
     }
 
     private async checkMainTask(actualInterval: number): Promise<void> {
-        const lastMainTaskTime = await this._throttleStore.getLastMainTaskTime();
         const currentTime = Date.now();
-        const delta = currentTime - lastMainTaskTime;
-        if (delta >= this._config.getMinCheckInterval() && currentTime >= this._lastExeTime + actualInterval) {
-            this._lastExeTime = currentTime;
-            await this._throttleStore.setLastMainTaskTime();
-            await this._scraper.executeTask(new CommonTask(TaskType.MAIN));
+        if (currentTime >= this._lastExeTime + actualInterval) {
+            const claimed = await this._throttleStore.tryClaimTaskTime('MainTask', this._config.getMinCheckInterval());
+            if (claimed) {
+                const executeMainTask = async () => {
+                    this._lastExeTime = Date.now();
+                    await this._scraper.executeTask(new CommonTask(TaskType.MAIN));
+                };
+                if (this._mutex) {
+                    await this._mutex.runExclusive(this.mode, executeMainTask);
+                } else {
+                    await executeMainTask();
+                }
+            }
         }
         this._checkMainTaskTimerId = setTimeout(() => {
             this.checkMainTask(actualInterval).catch((err) => {
@@ -107,11 +135,8 @@ export class TaskOrchestra {
     }
 
     private async checkFailedTask(): Promise<void> {
-        const lastFailedTaskTime = await this._throttleStore.getLastFailedTaskTime();
-        const currentTime = Date.now();
-        const delta = currentTime - lastFailedTaskTime;
-        if (delta >= this._config.getMinFailedTaskCheckInterval()) {
-            await this._throttleStore.setLastFailedTaskTime();
+        const claimed = await this._throttleStore.tryClaimTaskTime('FailedTask', this._config.getMinFailedTaskCheckInterval());
+        if (claimed) {
             while (await this.pickFailedTask()) {
                 await sleep(1000); // some small interval to queue task.
             }
@@ -122,68 +147,6 @@ export class TaskOrchestra {
                 logger.error('check_failed_task_error', { message: err.message, stack: err.stack });
             });
         }, checkInterval);
-    }
-
-    private pick(): void {
-        let actualInterval = this._taskTimingFactory(this._config.getMinInterval());
-        this.pickTask()
-            .then((hasTask) => {
-                /* if task queue is empty, try failed task */
-                if (!hasTask) {
-                    return this.pickFailedTask();
-                }
-                return true;
-            })
-            .then((hasSomeTaskExecuted) => {
-                /* Need to ensure the list page is checked regularly */
-                if (Date.now() - this._lastMainTaskExeTime > this._config.getMinCheckInterval()) {
-                    // force queue a MainTask
-                    logger.info('force_queue', {
-                        last_main_task_execute_time: this._lastMainTaskExeTime,
-                        min_check_interval: this._config.getMinCheckInterval()
-                    });
-                    this.queue(new CommonTask(TaskType.MAIN))
-                        .then(() => {
-                            this._checkMainTaskTimerId = setTimeout(() => {
-                                this.pick();
-                            }, actualInterval);
-                        });
-                    return;
-                }
-                /* Either task or failed task has been executed, we will try to pick again */
-                if (hasSomeTaskExecuted) {
-                    this._checkMainTaskTimerId = setTimeout(() => {
-                        this.pick();
-                    }, actualInterval);
-                } else {
-                    logger.info('no task in queue, queue a main task');
-                    this.queue(new CommonTask(TaskType.MAIN))
-                        .then(() => {
-                            let offset = Date.now() - this._lastMainTaskExeTime;
-                            this._checkMainTaskTimerId = setTimeout(() => {
-                                this.pick();
-                            }, Math.max(this._config.getMinCheckInterval() - offset, actualInterval));
-                        });
-                }
-            });
-    }
-
-    /**
-     * Pick a task from task queue
-     * @returns {Promise<boolean>} true if a task is picked, false if the task queue is empty.
-     */
-    private async pickTask(): Promise<boolean> {
-        if (await this._taskStore.hasTask()) {
-            let task = await this._taskStore.pollTask();
-            let result = await this._scraper.executeTask(task);
-            if (result === TaskStatus.NeedRetry) {
-                await this._taskStore.offerFailedTask(task);
-            } else if (result === TaskStatus.Success && task.type === TaskType.MAIN) {
-                this._lastMainTaskExeTime = Date.now();
-            }
-            return true;
-        }
-        return false;
     }
 
     /**

@@ -20,6 +20,7 @@ import { Container } from 'inversify';
 import { MongoClient } from 'mongodb';
 import { Item } from '../entity/Item';
 import { DatabaseService } from '../service/database-service';
+import { MongoClientProvider } from '../service/mongo-client-provider';
 import { SubTask } from '../task/sub-task';
 import { TaskType } from '../task/task-types';
 import { FakeConfigManager } from '../test/fake-config';
@@ -36,9 +37,12 @@ export class MongodbItemStoreSpec {
     private _config: ConfigManager;
     private _container: Container;
     private _databaseService: DatabaseService;
+    private _mongoClientProvider: MongoClientProvider;
 
     private _taskCollectionName = 'task';
     private _failedTaskCollectionName = 'failed_task';
+    private static readonly TEST_MODE = 'test';
+    private dbName: string;
 
     @SetupFixture
     public setupFixture() {
@@ -47,19 +51,21 @@ export class MongodbItemStoreSpec {
         }
         this._container = new Container();
         this._container.bind<ConfigManager>(TYPES.ConfigManager).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<MongoClientProvider>(MongoClientProvider).toSelf().inSingletonScope();
+        this._container.bind<string>(TYPES_IDX.DBName).toConstantValue(`${MongodbItemStoreSpec.TEST_MODE}_indexer`);
         this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
         this._container.bind<TaskQueue>(TYPES_IDX.TaskStorage).to(MongodbTaskStore).inTransientScope();
         this._container.bind<Sentry>(TYPES.Sentry).to(FakeSentry).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
-        this._config.prepare();
-        // this._config.dbHost = 'mongo';
+        this.dbName = this._container.get<string>(TYPES_IDX.DBName);
         (this._config as FakeConfigManager).dbPort = 27017;
     }
 
     @Setup
     public async databaseInit(): Promise<void> {
-        // Cast to PostgresStore<number>
-        this._databaseService = await this._container.get<DatabaseService>(DatabaseService);
+        this._mongoClientProvider = this._container.get<MongoClientProvider>(MongoClientProvider);
+        await this._mongoClientProvider.connect();
+        this._databaseService = this._container.get<DatabaseService>(DatabaseService);
         await this._databaseService.onStart();
         this._store = this._container.get<TaskQueue>(TYPES_IDX.TaskStorage) as MongodbTaskStore;
     }
@@ -67,14 +73,14 @@ export class MongodbItemStoreSpec {
     @Teardown
     public async databaseCleanUp(): Promise<void> {
         const client = await this._createClient();
-        const cur = client.db(this._config.getDbName()).listCollections({}, {nameOnly: true});
+        const cur = client.db(this.dbName).listCollections({}, {nameOnly: true});
         const existCollections = await cur.toArray();
         if (existCollections) {
             for (let collectionName of existCollections) {
-                await client.db(this._config.getDbName()).collection(collectionName.name).drop();
+                await client.db(this.dbName).collection(collectionName.name).drop();
             }
         }
-        await this._databaseService.onEnd();
+        await this._mongoClientProvider.close();
     }
 
     @Test('Task Queue Operation')

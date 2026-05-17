@@ -68,4 +68,19 @@ export class MongodbThrottleStore implements ThrottleStore {
         await this.db.collection(this._throttleCollectionName).findOneAndUpdate({name},
             {$set: {timestamp: Date.now()}}, {upsert: true});
     }
+
+    /**
+     * Atomically check if enough time has passed and claim the slot.
+     * Returns true if this instance won the race, false if another instance already claimed it.
+     */
+    public async tryClaimTaskTime(name: string, minInterval: number): Promise<boolean> {
+        const threshold = Date.now() - minInterval;
+        const result = await this.db.collection(this._throttleCollectionName).findOneAndUpdate(
+            { name, $or: [{ timestamp: { $lte: threshold } }, { timestamp: { $exists: false } }] },
+            { $set: { timestamp: Date.now() } },
+            { upsert: true, returnDocument: 'after' }
+        );
+        // If the update matched and modified, this instance won the race
+        return result != null;
+    }
 }

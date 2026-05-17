@@ -19,6 +19,7 @@ import { fail } from 'assert';
 import { Container } from 'inversify';
 import { MongoClient } from 'mongodb';
 import { DatabaseService } from '../service/database-service';
+import { MongoClientProvider } from '../service/mongo-client-provider';
 import { FakeConfigManager } from '../test/fake-config';
 import { items } from '../test/test-samples';
 import { ItemStorage, TYPES_IDX } from '../TYPES_IDX';
@@ -33,8 +34,11 @@ export class MongodbItemStoreSpec {
     private _config: ConfigManager;
     private _container: Container;
     private _databaseService: DatabaseService;
+    private _mongoClientProvider: MongoClientProvider;
 
     private _collectionName: string = 'items';
+    private static readonly TEST_MODE = 'test';
+    private dbName: string;
 
     @SetupFixture
     public setupFixture() {
@@ -43,28 +47,30 @@ export class MongodbItemStoreSpec {
         }
         this._container = new Container();
         this._container.bind<ConfigManager>(TYPES.ConfigManager).to(FakeConfigManager).inSingletonScope();
+        this._container.bind<MongoClientProvider>(MongoClientProvider).toSelf().inSingletonScope();
+        this._container.bind<string>(TYPES_IDX.DBName).toConstantValue(`${MongodbItemStoreSpec.TEST_MODE}_indexer`);
         this._container.bind<DatabaseService>(DatabaseService).toSelf().inSingletonScope();
         this._container.bind<ItemStorage<number>>(TYPES_IDX.ItemStorage).to(MongodbItemStore).inTransientScope();
         this._container.bind<Sentry>(TYPES.Sentry).to(FakeSentry).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
-        this._config.prepare();
-        // this._config.dbHost = 'mongo';
+        this.dbName = this._container.get(TYPES_IDX.DBName);
         (this._config as FakeConfigManager).dbPort = 27017;
     }
 
     @Setup
     public async databaseInit(): Promise<void> {
-        // Cast to PostgresStore<number>
-        this._databaseService = await this._container.get<DatabaseService>(DatabaseService);
+        this._mongoClientProvider = this._container.get<MongoClientProvider>(MongoClientProvider);
+        await this._mongoClientProvider.connect();
+        this._databaseService = this._container.get<DatabaseService>(DatabaseService);
         await this._databaseService.onStart();
         this._store = this._container.get<ItemStorage<number>>(TYPES_IDX.ItemStorage) as MongodbItemStore<number>;
     }
 
     @Teardown
     public async databaseCleanUp(): Promise<void> {
-        await this._databaseService.onEnd();
         const client = await this._createClient();
-        await client.db(this._config.getDbName()).collection(this._collectionName).drop();
+        await client.db(this.dbName).collection(this._collectionName).drop();
+        await this._mongoClientProvider.close();
     }
 
     @TestCase(0)
@@ -75,7 +81,7 @@ export class MongodbItemStoreSpec {
         Expect(isSuccess).toBeTruthy();
         const client = await this._createClient();
         const result = await client
-        .db(this._config.getDbName())
+        .db(this.dbName)
         .collection(this._collectionName)
         .find({})
         .project({ _id: 0 })

@@ -19,12 +19,13 @@ import { CollectionInfo, Db, MongoClient } from 'mongodb';
 import { logger } from '../utils/logger-factory';
 import { Sentry, TYPES } from '@irohalab/mira-shared';
 import { ConfigManager } from '../utils/config-manager';
+import { TYPES_IDX } from '../TYPES_IDX';
+import { MongoClientProvider } from './mongo-client-provider';
 
 @injectable()
 export class DatabaseService {
 
     private _db: Db;
-    private _client: MongoClient;
     private _collectionNames: string[] = [];
 
     public get db(): Db {
@@ -32,19 +33,17 @@ export class DatabaseService {
     }
 
     constructor(@inject(TYPES.ConfigManager) private _config: ConfigManager,
-                @inject(TYPES.Sentry) private _sentry: Sentry) {
+                @inject(TYPES.Sentry) private _sentry: Sentry,
+                @inject(TYPES_IDX.DBName) private _dbName: string,
+                @inject(MongoClientProvider) private _clientProvider: MongoClientProvider) {
     }
 
     public async onEnd(): Promise<void> {
-        await this._client.close();
+        // MongoClient lifecycle is managed by MongoClientProvider
     }
 
     public async onStart(): Promise<void> {
-        const url = `mongodb://${this._config.getDbUser()}:${this._config.getDbPass()}@${
-            this._config.getDbHost()
-            }:${this._config.getDbPort()}?authSource=${this._config.getAuthSource()}`;
-        this._client = await MongoClient.connect(url);
-        this._db = this._client.db(this._config.getDbName());
+        this._db = this._clientProvider.client.db(this._dbName);
         await this._doCheckCollection();
         return Promise.resolve();
     }
@@ -61,10 +60,11 @@ export class DatabaseService {
 
     public async transaction(transactionAction: (client: MongoClient) => Promise<void>): Promise<void> {
         let session = null;
+        const client = this._clientProvider.client;
         try {
-            session = this._client.startSession();
+            session = client.startSession();
             await session.withTransaction(async () => {
-                await transactionAction(this._client);
+                await transactionAction(client);
             });
         } catch (e) {
             logger.error('transaction_error', {

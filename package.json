@@ -1,6 +1,6 @@
 {
   "name": "indexer",
-  "version": "1.0.4",
+  "version": "2.0.0",
   "scripts": {
     "clean:dist": "rimraf dist/*",
     "build": "npm run clean:dist && tsc && cp package.json dist",
@@ -13,11 +13,11 @@
     "check-coverage": "nyc npm run test"
   },
   "dependencies": {
-    "@irohalab/mira-shared": "^4.2.2",
+    "@irohalab/mira-shared": "^5.1.2",
     "@sentry/node": "^10.5.0",
     "applicationinsights": "^1.8.7",
-    "axios": "^1.15.0",
-    "cheerio": "^1.1.2",
+    "axios": "^1.15.2",
+    "cheerio": "^1.2.0",
     "express": "^4.21.2",
     "inversify": "^6.0.3",
     "inversify-express-utils": "^6.5.0",
@@ -25,7 +25,7 @@
     "nanoid": "5.0.9",
     "parse-torrent": "^9.1.5",
     "pg": "^8.16.3",
-    "puppeteer": "^24.16.2",
+    "puppeteer-core": "^24.16.2",
     "reflect-metadata": "^0.2.2",
     "saslprep": "^1.0.3",
     "winston": "^3.17.0"

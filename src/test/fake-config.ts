@@ -33,8 +33,12 @@ export class FakeConfigManager implements ConfigManager {
     getMinFailedTaskCheckInterval(): number {
        return this.minFailedTaskCheckInterval || parseInt(process.env.MIN_FAILED_TASK_CHECK_INTERVAL, 10) || (60 * 1000);
     }
-    getMode(): string {
-        return process.env.INDEXER_MODE;
+    getModeList(): string[] {
+        const listStr = process.env.MODE_LIST;
+        if (listStr) {
+            return listStr.split(',');
+        }
+        return [process.env.INDEXER_MODE || 'dmhy'];
     }
     getDbMode(): string {
         return process.env.DB_MODE || 'mongo';
@@ -48,11 +52,11 @@ export class FakeConfigManager implements ConfigManager {
     getDbUser(): string {
         return process.env.DB_USER || process.env.USER;
     }
-    getDbName(): string {
+    getDbName(mode?: string): string {
         if (process.env.DB_NAME) {
             return process.env.DB_NAME;
         } else {
-            return this.getMode() + '_indexer';
+            return (mode || 'test') + '_indexer';
         }
     }
     getDbPass(): string {
@@ -83,9 +87,7 @@ export class FakeConfigManager implements ConfigManager {
         return parseInt(process.env.MAX_RETRY_COUNT, 10) || 5;
     }
     prepare(): void {
-        if (!this.getMode()) {
-            throw new Error('No mode specified!');
-        }
+        // no-op for tests
     }
     amqpConfig(): Options.Connect {
         return {
