@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-import { readFile } from 'fs';
+import { readFile, stat } from 'fs';
 import { basename, extname } from 'path';
 import { promisify } from 'util';
 import { MediaFile } from '../entity/media-file';
 
 const readFilePromise = promisify(readFile);
+const statPromise = promisify(stat);
+
+// Torrent files larger than this are skipped to avoid OOM.
+// A typical anime series (several hundred episodes) produces a .torrent well under 1 MB.
+// The 262K-file torrent that caused OOM was 23 MB.
+const MAX_TORRENT_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
 // Use indirect import to bypass ts-node converting import() to require(),
 // which fails because parse-torrent v11 is ESM-only.
@@ -38,6 +44,11 @@ export async function getTorrentFiles(torrentPath: string) {
 }
 
 export async function getTorrentInfo(torrentPath: string, withMagnet?: boolean) {
+    const fileInfo = await statPromise(torrentPath);
+    if (fileInfo.size > MAX_TORRENT_FILE_SIZE) {
+        return { magnet_uri: undefined, files: [] as MediaFile[] };
+    }
+
     const { parseTorrent, toMagnetURI } = await loadParseTorrent();
     const torrent = await readFilePromise(torrentPath);
     const parsed = await parseTorrent(torrent);
