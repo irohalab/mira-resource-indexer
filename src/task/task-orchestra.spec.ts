@@ -27,6 +27,8 @@ import { RabbitMQService, Sentry, TYPES } from '@irohalab/mira-shared';
 import { RascalImpl } from '@irohalab/mira-shared/services/RascalImpl';
 import { FakeSentry } from '../test/FakeSentry';
 import { InMemoryThrottleStore } from '../test/in-memory-throttle-store';
+import { InMemoryMQControlAPIClient } from '../test/in-memory-mq-control-api-client';
+import { MQControlAPIClient } from '../utils/mq-control-api-client';
 
 @TestFixture('TaskOrchestra test spec')
 export class TaskOrchestraSpec {
@@ -46,6 +48,7 @@ export class TaskOrchestraSpec {
         this._container.bind<TaskOrchestra>(TaskOrchestra).toSelf();
         this._container.bind<Scraper>(TYPES_IDX.Scraper).to(FakeScraper).inTransientScope();
         this._container.bind<ThrottleStore>(TYPES_IDX.ThrottleStore).to(InMemoryThrottleStore).inSingletonScope();
+        this._container.bind<MQControlAPIClient>(TYPES_IDX.MQControlAPIClient).to(InMemoryMQControlAPIClient).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
         (this._config as unknown as FakeConfigManager).minCheckInterval = MIN_INTERVAL * 3;
         (this._config as unknown as FakeConfigManager).minInterval = MIN_INTERVAL;

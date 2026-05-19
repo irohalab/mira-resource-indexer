@@ -37,12 +37,14 @@ export class BangumiMoe extends BaseScraper<string> {
                 @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
                 @inject(TYPES.ConfigManager) config: ConfigManager,
                 @inject(TYPES.Sentry) sentry: Sentry,
-                @inject(TaskOrchestra) taskOrchestra: TaskOrchestra) {
-        super(taskOrchestra, config, store, eventLogStore, sentry);
+                @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
+                @inject(TYPES_IDX.Mode) mode: string) {
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
     }
 
     public async executeMainTask(pageNo: number = 1): Promise<{items: Item<string>[], hasNext: boolean}> {
         logger.info('execute_main_task', {
+            mode: this._mode,
             pageNo
         });
         try {
@@ -64,6 +66,7 @@ export class BangumiMoe extends BaseScraper<string> {
         } catch (e: any) {
             await this.handleTimeout(e as unknown as Error);
             logger.warn('execute_main_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 line: '80',
@@ -77,6 +80,7 @@ export class BangumiMoe extends BaseScraper<string> {
 
     public async executeSubTask(item: Item<string>): Promise<number> {
         logger.info('execute_sub_task', {
+            mode: this._mode,
             item
         });
         let statusCode = -1;
@@ -118,6 +122,7 @@ export class BangumiMoe extends BaseScraper<string> {
                 statusCode = -1;
             }
             logger.warn('execute_sub_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 item,

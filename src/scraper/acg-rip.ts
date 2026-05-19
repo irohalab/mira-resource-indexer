@@ -43,9 +43,10 @@ export class AcgRipScraper extends BaseScraper<number> {
         @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
         @inject(TYPES.ConfigManager) config: ConfigManager,
-        @inject(TYPES.Sentry) sentry: Sentry
+        @inject(TYPES.Sentry) sentry: Sentry,
+        @inject(TYPES_IDX.Mode) mode: string
     ) {
-        super(taskOrchestra, config, store, eventLogStore, sentry);
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Item<number>[]; hasNext: boolean; }> {
@@ -59,7 +60,7 @@ export class AcgRipScraper extends BaseScraper<number> {
         ];
 
         try {
-            logger.info('execute_main_task', { pageNo });
+            logger.info('execute_main_task', { mode: this._mode, pageNo });
             const items: Item<number>[] = [];
 
             const getListPageItemsByType = async (type: {id: number, name: string}) => {
@@ -100,6 +101,7 @@ export class AcgRipScraper extends BaseScraper<number> {
         } catch (e: any) {
             await this.handleTimeout(e as unknown as Error);
             logger.warn('execute_main_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 line: '80',
@@ -113,7 +115,7 @@ export class AcgRipScraper extends BaseScraper<number> {
         let statusCode = -1;
         try {
             const subTaskUrl = `${AcgRipScraper._host}${item.uri}`;
-            logger.info('acg_rip execute_sub_task', { item });
+            logger.info('execute_sub_task', { mode: this._mode, item });
             const resp = await Axios.get(subTaskUrl);
             statusCode = resp.status;
 
@@ -151,6 +153,7 @@ export class AcgRipScraper extends BaseScraper<number> {
                 statusCode = -1;
             }
             logger.warn('execute_sub_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 item,

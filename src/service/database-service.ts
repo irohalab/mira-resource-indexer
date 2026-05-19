@@ -53,7 +53,7 @@ export class DatabaseService {
         if (this.db) {
             this._doCheckCollection()
                 .then(() => {
-                    logger.info('collection checked');
+                    logger.info('collection_checked', { db: this._dbName });
                 });
         }
     }
@@ -68,6 +68,7 @@ export class DatabaseService {
             });
         } catch (e) {
             logger.error('transaction_error', {
+                db: this._dbName,
                 stack: e.stack
             });
             this._sentry.capture(e);
