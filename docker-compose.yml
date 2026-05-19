@@ -39,6 +39,7 @@ services:
       MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
       SENTRY_DSN: ${SENTRY_DSN}
       AMQP_URL: "${AMQP_URL-amqp://ciuser:cipassword@rabbitmq:5672/}"
+      AMQP_MANAGEMENT_API_URL: "${AMQP_MANAGEMENT_API_URL-http://ciuser:cipassword@localhost:15672/api}"
     volumes:
       - ".:/irohalab/indexer"
       - "/irohalab/indexer/node_modules"

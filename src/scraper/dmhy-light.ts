@@ -42,9 +42,10 @@ export class DmhyLightScraper extends BaseScraper<number> {
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
         @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
         @inject(TYPES.Sentry) sentry: Sentry,
-        @inject(TYPES.ConfigManager) config: ConfigManager
+        @inject(TYPES.ConfigManager) config: ConfigManager,
+        @inject(TYPES_IDX.Mode) mode: string
     ) {
-        super(taskOrchestra, config, store, eventLogStore, sentry);
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Item<number>[], hasNext: boolean }> {
@@ -54,6 +55,7 @@ export class DmhyLightScraper extends BaseScraper<number> {
                 listPageUrl += '/topics/list/page/' + pageNo;
             }
             logger.info('execute_main_task', {
+                mode: this._mode,
                 pageNo
             });
             const resp = await Axios.get(listPageUrl);
@@ -86,6 +88,7 @@ export class DmhyLightScraper extends BaseScraper<number> {
         } catch (e: any) {
             await this.handleTimeout(e as unknown as Error);
             logger.warn('execute_main_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 line: '95',
@@ -101,6 +104,7 @@ export class DmhyLightScraper extends BaseScraper<number> {
         try {
             const subTaskUrl = DmhyLightScraper._host + item.uri;
             logger.info('execute_sub_task', {
+                mode: this._mode,
                 item
             });
             const resp = await Axios.get(subTaskUrl);
@@ -154,6 +158,7 @@ export class DmhyLightScraper extends BaseScraper<number> {
                 statusCode = -1;
             }
             logger.warn('execute_sub_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 item,

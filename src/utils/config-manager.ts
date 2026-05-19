@@ -15,6 +15,7 @@
  */
 
 import { BaseConfigManager } from '@irohalab/mira-shared';
+import { AMQPServerType } from './amqp-server-type';
 
 export const DMHY = 'dmhy';
 export const BANGUMI_MOE = 'bangumi_moe';
@@ -38,4 +39,7 @@ export interface ConfigManager extends BaseConfigManager {
     getMaxPageNo(): number; // max page number for scrapping
     getMaxSearchCount(): number; // max search result count
     getMaxRetryCount(): number; // max retry times for a task
+    amqpManagementAPIUrl(): string;
+    getAmqpServerType(): AMQPServerType;
+    getAmqpVhost(): string;
 }

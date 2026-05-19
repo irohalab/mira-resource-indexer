@@ -79,8 +79,9 @@ export class MikananiMe extends BaseScraper<string> {
                 @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
                 @inject(TYPES.Sentry) sentry: Sentry,
-                @inject(TYPES.ConfigManager) config: ConfigManager) {
-        super(taskOrchestra, config, store, eventLogStore, sentry);
+                @inject(TYPES.ConfigManager) config: ConfigManager,
+                @inject(TYPES_IDX.Mode) mode: string) {
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
     }
 
     public async start(): Promise<any> {
@@ -122,6 +123,7 @@ export class MikananiMe extends BaseScraper<string> {
                 listPageUrl += '/' + pageNo;
             }
             logger.info('execute_main_task', {
+                mode: this._mode,
                 pageNo
             });
             await page.goto(listPageUrl, {
@@ -234,6 +236,7 @@ export class MikananiMe extends BaseScraper<string> {
         } catch (e) {
             await this.handleTimeout(e);
             logger.warn('execute_main_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 line: '157',
@@ -248,7 +251,7 @@ export class MikananiMe extends BaseScraper<string> {
 
     public async executeSubTask(item: Item<string>): Promise<number> {
         try {
-            logger.info('start to get torrent info for item#' + item.id);
+            logger.info('start to get torrent info', { mode: this._mode, itemId: item.id });
             const torrentPath = await downloadFile(item.torrent_url);
             const info = await getTorrentInfo(torrentPath);
             item.files = info.files;
@@ -265,6 +268,7 @@ export class MikananiMe extends BaseScraper<string> {
             }
             await this.handleTimeout(e);
             logger.warn('execute_sub_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 item,

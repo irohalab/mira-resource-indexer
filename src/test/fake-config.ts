@@ -21,6 +21,7 @@ import { SqlEntityManager } from '@mikro-orm/knex';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { Options } from 'amqplib';
 import process from 'node:process';
+import { AMQPServerType } from '../utils/amqp-server-type';
 
 @injectable()
 export class FakeConfigManager implements ConfigManager {
@@ -107,5 +108,14 @@ export class FakeConfigManager implements ConfigManager {
     }
     databaseConfig(): MikroORMOptions<PostgreSqlDriver, SqlEntityManager<PostgreSqlDriver>> {
         throw new Error('Method not implemented.');
+    }
+    amqpManagementAPIUrl(): string {
+        return process.env.AMQP_MANAGEMENT_API_URL || 'http://localhost:15672/api';
+    }
+    getAmqpServerType(): AMQPServerType {
+        return AMQPServerType.RabbitMQ;
+    }
+    getAmqpVhost(): string {
+        return '/';
     }
 }

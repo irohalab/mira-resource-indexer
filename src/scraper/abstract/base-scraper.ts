@@ -34,7 +34,8 @@ export abstract class BaseScraper<T> implements Scraper {
                           protected _config: ConfigManager,
                           protected _store: ItemStorage<T>,
                           protected _eventLogStore: EventLogStore,
-                          protected _sentry: Sentry) {
+                          protected _sentry: Sentry,
+                          protected _mode: string) {
         this.className = this.constructor.name;
     }
 
@@ -97,14 +98,14 @@ export abstract class BaseScraper<T> implements Scraper {
             try {
                 await this._eventLogStore.putEventLog('TimeoutError', 'error');
             } catch (error) {
-                logger.error('Error while trying to save event', e);
+                logger.error('save_event_error', { mode: this._mode, error: e });
                 this._sentry.capture(error);
             }
         } else if (e instanceof AxiosError && e.status === 404) {
             try {
                 await this._eventLogStore.putEventLog('NotFoundError', 'error');
             } catch (error) {
-                logger.error('Error while trying to save event', e);
+                logger.error('save_event_error', { mode: this._mode, error: e });
                 this._sentry.capture(error);
             }
         } else {

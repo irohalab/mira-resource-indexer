@@ -21,6 +21,7 @@ import { ACG_RIP, BANGUMI_MOE, ConfigManager, DMHY, MIKANANI_ME, NYAA } from './
 import { injectable } from 'inversify';
 import { Options } from 'amqplib';
 import * as process from 'node:process';
+import { AMQPServerType } from './amqp-server-type';
 
 export const DEFAULT_MODE_LIST = [DMHY, ACG_RIP, NYAA, MIKANANI_ME, BANGUMI_MOE];
 
@@ -103,5 +104,18 @@ export class ConfigManagerImpl implements ConfigManager {
     }
     databaseConfig(): MikroORMOptions<PostgreSqlDriver, SqlEntityManager<PostgreSqlDriver>> {
         throw new Error('Method not implemented.');
+    }
+    amqpManagementAPIUrl(): string {
+        return process.env.AMQP_MANAGEMENT_API_URL || 'http://localhost:15672/api';
+    }
+    getAmqpServerType(): AMQPServerType {
+        const type = process.env.AMQP_SERVER_TYPE;
+        if (type && type in AMQPServerType) {
+            return AMQPServerType[type as keyof typeof AMQPServerType];
+        }
+        return AMQPServerType.RabbitMQ;
+    }
+    getAmqpVhost(): string {
+        return process.env.AMQP_VHOST || '/';
     }
 }

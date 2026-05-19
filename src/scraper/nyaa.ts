@@ -39,9 +39,10 @@ export class NyaaScraper extends BaseScraper<number> {
         @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
         @inject(TYPES.Sentry) sentry: Sentry,
-        @inject(TYPES.ConfigManager) config: ConfigManager
+        @inject(TYPES.ConfigManager) config: ConfigManager,
+        @inject(TYPES_IDX.Mode) mode: string
     ) {
-        super(taskOrchestra, config, store, eventLogStore, sentry);
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Item<number>[], hasNext: boolean }> {
@@ -51,6 +52,7 @@ export class NyaaScraper extends BaseScraper<number> {
                 listPageUrl += '/?p=' + pageNo;
             }
             logger.info('execute_main_task', {
+                mode: this._mode,
                 pageNo
             });
             const resp = await Axios.get(listPageUrl);
@@ -81,6 +83,7 @@ export class NyaaScraper extends BaseScraper<number> {
         } catch (e: any) {
             await this.handleTimeout(e as unknown as Error);
             logger.warn('execute_main_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 line: '80',
@@ -96,6 +99,7 @@ export class NyaaScraper extends BaseScraper<number> {
         try {
             const subTaskUrl = `${NyaaScraper._host}${item.uri}`;
             logger.info('execute_sub_task', {
+                mode: this._mode,
                 item
             });
             const resp = await Axios.get(subTaskUrl);
@@ -119,7 +123,7 @@ export class NyaaScraper extends BaseScraper<number> {
             item.magnet_uri = panels.eq(0).find('.panel-footer > a:nth-child(2)').attr('href');
             item.torrent_url = NyaaScraper._host + panels.eq(0).find('.panel-footer > a:nth-child(1)').attr('href');
             item.files = [];
-            logger.info('start to get torrent info for item#' + item.id);
+            logger.info('start to get torrent info', { mode: this._mode, itemId: item.id });
             const torrentPath = await downloadFile(item.torrent_url);
             const info = await getTorrentInfo(torrentPath);
             item.files = info.files;
@@ -133,6 +137,7 @@ export class NyaaScraper extends BaseScraper<number> {
                 statusCode = -1;
             }
             logger.warn('execute_sub_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 item,

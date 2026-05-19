@@ -40,6 +40,10 @@ import { MikananiMeLight } from './scraper/mikanani-me-light';
 import { DmhyLightScraper } from './scraper/dmhy-light';
 import { AsyncMutex } from './utils/async-mutex';
 import { ScraperCoordinator } from './task/scraper-coordinator';
+import { MQControlAPIClient } from './utils/mq-control-api-client';
+import { RabbitMQManagementAPIClient } from './utils/rabbitmq-management-api-client';
+import { LavinMQManagementAPIClient } from './utils/lavinmq-management-api-client';
+import { AMQPServerType } from './utils/amqp-server-type';
 
 /* ===== Root container: shared infrastructure only ===== */
 const container = new Container();
@@ -65,6 +69,13 @@ container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactor
 
 /* Shared AsyncMutex: ensures only one scraper task runs at a time */
 container.bind<AsyncMutex>(TYPES_IDX.AsyncMutex).to(AsyncMutex).inSingletonScope();
+
+/* MQ management API client for queue depth checks */
+if (config.getAmqpServerType() === AMQPServerType.LavinMQ) {
+    container.bind<MQControlAPIClient>(TYPES_IDX.MQControlAPIClient).to(LavinMQManagementAPIClient).inSingletonScope();
+} else {
+    container.bind<MQControlAPIClient>(TYPES_IDX.MQControlAPIClient).to(RabbitMQManagementAPIClient).inSingletonScope();
+}
 
 /* ===== Child containers: one per mode with ALL mode-dependent services ===== */
 const modes = config.getModeList();

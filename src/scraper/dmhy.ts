@@ -82,8 +82,9 @@ export class DmhyScraper extends BaseScraper<number> {
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
                 @inject(TYPES_IDX.EventLogStore) eventLogStore: EventLogStore,
                 @inject(TYPES.Sentry) sentry: Sentry,
-                @inject(TYPES.ConfigManager) config: ConfigManager) {
-        super(taskOrchestra, config, store, eventLogStore, sentry);
+                @inject(TYPES.ConfigManager) config: ConfigManager,
+                @inject(TYPES_IDX.Mode) mode: string) {
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
     }
 
     public async start(): Promise<any> {
@@ -122,6 +123,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 listPageUrl += '/topics/list/page/' + pageNo;
             }
             logger.info('execute_main_task', {
+                mode: this._mode,
                 pageNo
             });
             await page.goto(listPageUrl, {
@@ -159,6 +161,7 @@ export class DmhyScraper extends BaseScraper<number> {
         } catch (e) {
             await this.handleTimeout(e);
             logger.warn('execute_main_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 line: '157',
@@ -177,6 +180,7 @@ export class DmhyScraper extends BaseScraper<number> {
         let bodyStr = null;
         try {
             logger.info('execute_sub_task', {
+                mode: this._mode,
                 item
             });
             const response = await page.goto(DmhyScraper._host + item.uri, {
@@ -255,6 +259,7 @@ export class DmhyScraper extends BaseScraper<number> {
                 statusCode = -1;
             }
             logger.warn('execute_sub_task_exception', {
+                mode: this._mode,
                 code: e.code,
                 error_message: e.message,
                 item,

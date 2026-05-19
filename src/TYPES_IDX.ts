@@ -29,7 +29,8 @@ export const TYPES_IDX = {
     EventLogStore: Symbol.for('EventLogStore'),
     Mode: Symbol.for('Mode'),
     DBName: Symbol.for('DBName'),
-    AsyncMutex: Symbol.for('AsyncMutex')
+    AsyncMutex: Symbol.for('AsyncMutex'),
+    MQControlAPIClient: Symbol.for('MQControlAPIClient')
 };
 
 export type LogType = 'info' | 'warn' | 'error';
