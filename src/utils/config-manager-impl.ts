@@ -115,7 +115,4 @@ export class ConfigManagerImpl implements ConfigManager {
         }
         return AMQPServerType.RabbitMQ;
     }
-    getAmqpVhost(): string {
-        return process.env.AMQP_VHOST || '/';
-    }
 }

@@ -14,19 +14,18 @@ services:
     network_mode: host
     command: node --title=indexer dist/main.js
     environment:
-      DB_HOST: "${DB_HOST-store}"
-      DB_PORT: "${DB_PORT-27017}"
-      DB_USER: "${DB_USER-admin}"
-      DB_PASS: "${DB_PASS-123456}"
-      MODE_LIST: "${MODE_LIST-dmhy,bangumi_moe,nyaa,acg_rip,mikanani_me}"
-      MIN_INTERVAL: "${MIN_INTERVAL-10000}"
-      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL-900000}"
-      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL-1800000}"
+      DB_HOST: "${DB_HOST:-store}"
+      DB_PORT: "${DB_PORT:-27017}"
+      DB_USER: "${DB_USER:-admin}"
+      DB_PASS: "${DB_PASS:-123456}"
+      MODE_LIST: "${MODE_LIST:-dmhy,bangumi_moe,nyaa,acg_rip,mikanani_me}"
+      MIN_INTERVAL: "${MIN_INTERVAL:-10000}"
+      MIN_CHECK_INTERVAL: "${MIN_CHECK_INTERVAL:-900000}"
+      MIN_FAILED_TASK_CHECK_INTERVAL: "${MIN_FAILED_TASK_CHECK_INTERVAL:-1800000}"
       MAX_PAGE_NO: ${MAX_PAGE_NO-5}
       MAX_SEARCH_COUNT: ${MAX_SEARCH_COUNT-100}
-      SERVER_PORT: "${SERVER_PORT-4000}"
+      SERVER_PORT: "${SERVER_PORT:-4000}"
       SENTRY_DSN: "${SENTRY_DSN}"
       AMQP_URL: ${AMQP_URL}
       AMQP_MANAGEMENT_API_URL: "${AMQP_MANAGEMENT_API_URL}"
       AMQP_SERVER_TYPE: "{AMQP_SERVER_TYPE}"
-      AMQP_VHOST: "{AMQP_VHOST}"

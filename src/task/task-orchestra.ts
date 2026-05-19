@@ -43,6 +43,7 @@ export class TaskOrchestra {
     private _lastMainTaskExeTime  = 0;
     private _scraper: Scraper;
     private _lastExeTime = 0;
+    private _vhost = '/';
 
     private readonly _exchangeName: string;
     private readonly _queueName: string;
@@ -59,6 +60,10 @@ export class TaskOrchestra {
         this._exchangeName = `${TASK_EXCHANGE}_${this.mode}`;
         this._queueName = `${TASK_QUEUE}_${this.mode}`;
         this._taskRoutingKey = `${TASK_ROUTING_KEY}_${this.mode}`;
+        if (this._config.amqpServerUrl()) {
+            const urlObj = new URL(this._config.amqpServerUrl());
+            this._vhost = urlObj.pathname.substring(1);
+        }
     }
 
     /**
@@ -115,7 +120,7 @@ export class TaskOrchestra {
 
     private async checkMainTask(actualInterval: number): Promise<void> {
         try {
-            const queueInfo = await this._mqControlAPI.getQueueInfo(this._config.getAmqpVhost(), this._queueName);
+            const queueInfo = await this._mqControlAPI.getQueueInfo(this._vhost, this._queueName);
             if (queueInfo.len > 0) {
                 logger.info('skip_main_task_check', { mode: this.mode, queueLen: queueInfo.len });
             } else {
