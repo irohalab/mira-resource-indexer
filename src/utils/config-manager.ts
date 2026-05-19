@@ -41,5 +41,4 @@ export interface ConfigManager extends BaseConfigManager {
     getMaxRetryCount(): number; // max retry times for a task
     amqpManagementAPIUrl(): string;
     getAmqpServerType(): AMQPServerType;
-    getAmqpVhost(): string;
 }
