@@ -18,6 +18,7 @@ import { readFile, stat } from 'fs';
 import { basename, extname } from 'path';
 import { promisify } from 'util';
 import { MediaFile } from '../entity/media-file';
+import { logger } from './logger-factory';
 
 const readFilePromise = promisify(readFile);
 const statPromise = promisify(stat);
@@ -39,8 +40,13 @@ async function loadParseTorrent() {
 export async function getTorrentFiles(torrentPath: string) {
     const { parseTorrent } = await loadParseTorrent();
     const file = await readFilePromise(torrentPath);
-    const torrent = await parseTorrent(file);
-    return torrent.files;
+    try {
+        const torrent = await parseTorrent(file);
+        return torrent.files;
+    } catch (e: any) {
+        logger.warn('Failed to parse torrent file: %s, error: %s', torrentPath, e.message);
+        return [];
+    }
 }
 
 export async function getTorrentInfo(torrentPath: string, withMagnet?: boolean) {
@@ -51,7 +57,13 @@ export async function getTorrentInfo(torrentPath: string, withMagnet?: boolean) 
 
     const { parseTorrent, toMagnetURI } = await loadParseTorrent();
     const torrent = await readFilePromise(torrentPath);
-    const parsed = await parseTorrent(torrent);
+    let parsed: any;
+    try {
+        parsed = await parseTorrent(torrent);
+    } catch (e: any) {
+        logger.warn('Failed to parse torrent file: %s, error: %s', torrentPath, e.message);
+        return { magnet_uri: undefined, files: [] as MediaFile[] };
+    }
 
     let magnet_uri: string | undefined;
     if (withMagnet) {
