@@ -41,4 +41,6 @@ export interface ConfigManager extends BaseConfigManager {
     getMaxRetryCount(): number; // max retry times for a task
     amqpManagementAPIUrl(): string;
     getAmqpServerType(): AMQPServerType;
+    getSiteHealthErrorWindowMs(): number; // sliding window for known network error tracking, unit is millisecond
+    getSiteHealthErrorThreshold(): number; // number of known errors in window before alerting
 }

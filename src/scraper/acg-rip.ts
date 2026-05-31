@@ -29,6 +29,7 @@ import { getTorrentInfo } from '../utils/torrent-utils';
 import { BaseScraper } from './abstract/base-scraper';
 import { ConfigManager } from '../utils/config-manager';
 import { Sentry, TYPES } from '@irohalab/mira-shared';
+import { SiteHealthMonitor } from '../utils/site-health-monitor';
 import cheerio = require('cheerio');
 
 const { unlink }  = promises;
@@ -44,9 +45,10 @@ export class AcgRipScraper extends BaseScraper<number> {
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
         @inject(TYPES.ConfigManager) config: ConfigManager,
         @inject(TYPES.Sentry) sentry: Sentry,
-        @inject(TYPES_IDX.Mode) mode: string
+        @inject(TYPES_IDX.Mode) mode: string,
+        @inject(TYPES_IDX.SiteHealthMonitor) siteHealthMonitor: SiteHealthMonitor
     ) {
-        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode, siteHealthMonitor);
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Item<number>[]; hasNext: boolean; }> {
