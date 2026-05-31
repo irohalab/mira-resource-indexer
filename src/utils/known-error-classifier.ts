@@ -29,7 +29,7 @@ const KNOWN_NETWORK_ERROR_MESSAGES = [
     'socket hang up',
     'ECONNRESET',
     'aborted',
-    'Client network socket disconnected before secure TLS connection was established',
+    'Client network socket disconnected before secure TLS connection was established'
 ];
 
 /**
