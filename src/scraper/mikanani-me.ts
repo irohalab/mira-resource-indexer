@@ -29,6 +29,7 @@ import { promises } from 'fs';
 import { EventLogStore, ItemStorage, TYPES_IDX } from '../TYPES_IDX';
 import { ConfigManager } from '../utils/config-manager';
 import { Sentry, TYPES } from '@irohalab/mira-shared';
+import { SiteHealthMonitor } from '../utils/site-health-monitor';
 
 const { unlink } = promises;
 
@@ -80,8 +81,9 @@ export class MikananiMe extends BaseScraper<string> {
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
                 @inject(TYPES.Sentry) sentry: Sentry,
                 @inject(TYPES.ConfigManager) config: ConfigManager,
-                @inject(TYPES_IDX.Mode) mode: string) {
-        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
+                @inject(TYPES_IDX.Mode) mode: string,
+                @inject(TYPES_IDX.SiteHealthMonitor) siteHealthMonitor: SiteHealthMonitor) {
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode, siteHealthMonitor);
     }
 
     public async start(): Promise<any> {

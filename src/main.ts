@@ -44,6 +44,7 @@ import { MQControlAPIClient } from './utils/mq-control-api-client';
 import { RabbitMQManagementAPIClient } from './utils/rabbitmq-management-api-client';
 import { LavinMQManagementAPIClient } from './utils/lavinmq-management-api-client';
 import { AMQPServerType } from './utils/amqp-server-type';
+import { SiteHealthMonitor } from './utils/site-health-monitor';
 
 /* ===== Root container: shared infrastructure only ===== */
 const container = new Container();
@@ -98,6 +99,9 @@ for (const mode of modes) {
 
     /* Per-mode task orchestration */
     child.bind<TaskOrchestra>(TaskOrchestra).toSelf().inSingletonScope();
+
+    /* Per-mode site health monitor */
+    child.bind<SiteHealthMonitor>(TYPES_IDX.SiteHealthMonitor).to(SiteHealthMonitor).inSingletonScope();
 
     /* Per-mode scraper + item storage */
     switch (mode) {

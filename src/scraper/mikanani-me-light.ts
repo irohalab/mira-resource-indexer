@@ -29,6 +29,7 @@ import { BaseScraper } from './abstract/base-scraper';
 import { logger } from '../utils/logger-factory';
 import { Sentry, TYPES } from '@irohalab/mira-shared';
 import { ConfigManager } from '../utils/config-manager';
+import { SiteHealthMonitor } from '../utils/site-health-monitor';
 import cheerio = require('cheerio');
 
 @injectable()
@@ -41,9 +42,10 @@ export class MikananiMeLight extends BaseScraper<string> {
         @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
         @inject(TYPES.Sentry) sentry: Sentry,
         @inject(TYPES.ConfigManager) config: ConfigManager,
-        @inject(TYPES_IDX.Mode) mode: string
+        @inject(TYPES_IDX.Mode) mode: string,
+        @inject(TYPES_IDX.SiteHealthMonitor) siteHealthMonitor: SiteHealthMonitor
     ) {
-        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode, siteHealthMonitor);
     }
 
     public async executeMainTask(pageNo?: number): Promise<{ items: Item<string>[], hasNext: boolean }> {

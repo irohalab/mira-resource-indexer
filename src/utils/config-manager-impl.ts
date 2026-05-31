@@ -115,4 +115,10 @@ export class ConfigManagerImpl implements ConfigManager {
         }
         return AMQPServerType.RabbitMQ;
     }
+    getSiteHealthErrorWindowMs(): number {
+        return parseInt(process.env.SITE_HEALTH_ERROR_WINDOW_MS, 10) || (30 * 60 * 1000);
+    }
+    getSiteHealthErrorThreshold(): number {
+        return parseInt(process.env.SITE_HEALTH_ERROR_THRESHOLD, 10) || 5;
+    }
 }

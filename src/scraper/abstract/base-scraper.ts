@@ -26,6 +26,8 @@ import { ConfigManager } from '../../utils/config-manager';
 import { logger } from '../../utils/logger-factory';
 import { Sentry } from '@irohalab/mira-shared';
 import { AxiosError } from 'axios';
+import { SiteHealthMonitor } from '../../utils/site-health-monitor';
+import { isKnownNetworkError } from '../../utils/known-error-classifier';
 
 export abstract class BaseScraper<T> implements Scraper {
     protected className: string;
@@ -35,7 +37,8 @@ export abstract class BaseScraper<T> implements Scraper {
                           protected _store: ItemStorage<T>,
                           protected _eventLogStore: EventLogStore,
                           protected _sentry: Sentry,
-                          protected _mode: string) {
+                          protected _mode: string,
+                          protected _siteHealthMonitor: SiteHealthMonitor) {
         this.className = this.constructor.name;
     }
 
@@ -52,6 +55,7 @@ export abstract class BaseScraper<T> implements Scraper {
             if (!result) {
                 return TaskStatus.NeedRetry;
             }
+            this._siteHealthMonitor.reportSuccess();
             for (let item of result.items) {
                 await this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
             }
@@ -71,6 +75,7 @@ export abstract class BaseScraper<T> implements Scraper {
             let httpStatusCode = await this.executeSubTask(item);
             if (httpStatusCode === 200) {
                 await this._store.putItem(item);
+                this._siteHealthMonitor.reportSuccess();
                 return TaskStatus.Success;
             } else if (httpStatusCode !== 404) {
                 return TaskStatus.NeedRetry;
@@ -108,6 +113,14 @@ export abstract class BaseScraper<T> implements Scraper {
                 logger.error('save_event_error', { mode: this._mode, error: e });
                 this._sentry.capture(error);
             }
+        } else if (isKnownNetworkError(e)) {
+            try {
+                await this._eventLogStore.putEventLog('KnownNetworkError', 'error');
+            } catch (error) {
+                logger.error('save_event_error', { mode: this._mode, error: e });
+                this._sentry.capture(error);
+            }
+            this._siteHealthMonitor.recordError(e);
         } else {
             this._sentry.capture(e);
         }

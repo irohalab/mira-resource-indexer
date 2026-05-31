@@ -28,6 +28,7 @@ import { BaseScraper } from './abstract/base-scraper';
 import { logger } from '../utils/logger-factory';
 import { Sentry, TYPES } from '@irohalab/mira-shared';
 import { ConfigManager } from '../utils/config-manager';
+import { SiteHealthMonitor } from '../utils/site-health-monitor';
 
 @injectable()
 export class BangumiMoe extends BaseScraper<string> {
@@ -38,8 +39,9 @@ export class BangumiMoe extends BaseScraper<string> {
                 @inject(TYPES.ConfigManager) config: ConfigManager,
                 @inject(TYPES.Sentry) sentry: Sentry,
                 @inject(TaskOrchestra) taskOrchestra: TaskOrchestra,
-                @inject(TYPES_IDX.Mode) mode: string) {
-        super(taskOrchestra, config, store, eventLogStore, sentry, mode);
+                @inject(TYPES_IDX.Mode) mode: string,
+                @inject(TYPES_IDX.SiteHealthMonitor) siteHealthMonitor: SiteHealthMonitor) {
+        super(taskOrchestra, config, store, eventLogStore, sentry, mode, siteHealthMonitor);
     }
 
     public async executeMainTask(pageNo: number = 1): Promise<{items: Item<string>[], hasNext: boolean}> {
@@ -73,7 +75,6 @@ export class BangumiMoe extends BaseScraper<string> {
                 page_no: pageNo,
                 stack: e.stack
             });
-            this._sentry.capture(e);
         }
         return Promise.resolve(null);
     }
@@ -129,7 +130,6 @@ export class BangumiMoe extends BaseScraper<string> {
                 line: '115',
                 stack: e.stack
             });
-            this._sentry.capture(e);
         }
         return statusCode;
     }

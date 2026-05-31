@@ -118,4 +118,10 @@ export class FakeConfigManager implements ConfigManager {
     getAmqpVhost(): string {
         return '/';
     }
+    getSiteHealthErrorWindowMs(): number {
+        return 30 * 60 * 1000;
+    }
+    getSiteHealthErrorThreshold(): number {
+        return 5;
+    }
 }
