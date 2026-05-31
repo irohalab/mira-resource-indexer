@@ -28,8 +28,15 @@ const KNOWN_SERVER_ERROR_CODES = new Set([500, 502, 524, 525]);
 const KNOWN_NETWORK_ERROR_MESSAGES = [
     'socket hang up',
     'ECONNRESET',
+    'Client network socket disconnected before secure TLS connection was established',
+];
+
+/**
+ * Error messages that must match exactly (using ===) to avoid false positives
+ * from generic words that appear in unrelated error messages.
+ */
+const KNOWN_NETWORK_ERROR_EXACT_MESSAGES = [
     'aborted',
-    'Client network socket disconnected before secure TLS connection was established'
 ];
 
 /**

@@ -21,6 +21,8 @@ Indexer can be configured to different modes: dmhy, Bangumi.moe, nyaa, acg.rip
 - MAX_PAGE_NO the scraping max page number, default is `5`
 - MAX_SEARCH_COUNT the REST API search max result count, default is `100`
 - SENTRY_DSN (optional) the dsn required for your sentry project. see the [Sentry](#Sentry) section
+- SITE_HEALTH_ERROR_WINDOW_MS the sliding time window (in milliseconds) used to count network errors for site health monitoring, default is `1800000` (30 minutes)
+- SITE_HEALTH_ERROR_THRESHOLD the number of errors within the window that triggers a Sentry alert, default is `5`
 
 ## Start from docker
 
