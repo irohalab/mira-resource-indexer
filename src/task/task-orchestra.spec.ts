@@ -76,6 +76,10 @@ export class TaskOrchestraSpec {
             fakeResources.push(res);
         }
         this._scraper.resources = fakeResources;
+        // Register exchanges/queues/publications with the broker (as ScraperCoordinator does
+        // in production) before starting; otherwise publishing the first task fails with
+        // "Unknown publication".
+        await this._scraper.initMQ();
         await this._scraper.start();
     }
 

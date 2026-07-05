@@ -25,7 +25,8 @@ import {
     TYPES_IDX
 } from '../TYPES_IDX';
 import { TaskStatus } from './task-status';
-import { CommonTask, Task, TaskType } from './task-types';
+import { Task, TaskType } from './task-types';
+import { MainTask } from './main-task';
 import { logger } from '../utils/logger-factory';
 import { MQMessage, RabbitMQService, TYPES } from '@irohalab/mira-shared';
 import { promisify } from 'util';
@@ -42,12 +43,15 @@ export class TaskOrchestra {
     private _checkFailedTaskTimerId: Timeout;
     private _lastMainTaskExeTime  = 0;
     private _scraper: Scraper;
-    private _lastExeTime = 0;
+    private _lastMainExeTime = 0;
+    private _lastSubExeTime = 0;
     private _vhost = '/';
 
     private readonly _exchangeName: string;
-    private readonly _queueName: string;
-    private readonly _taskRoutingKey: string;
+    private readonly _mainQueueName: string;
+    private readonly _subQueueName: string;
+    private readonly _mainRoutingKey: string;
+    private readonly _subRoutingKey: string;
 
     constructor(@inject(TYPES.ConfigManager) private _config: ConfigManager,
                 @inject(TYPES_IDX.TaskTimingFactory) private _taskTimingFactory: (interval: number) => number,
@@ -55,11 +59,14 @@ export class TaskOrchestra {
                 @inject(TYPES_IDX.TaskStorage) private _taskStore: TaskQueue,
                 @inject(TYPES_IDX.ThrottleStore) private _throttleStore: ThrottleStore,
                 @inject(TYPES_IDX.Mode) private mode: string,
-                @inject(TYPES_IDX.AsyncMutex) @optional() private _mutex: AsyncMutex | null,
+                @inject(TYPES_IDX.MainTaskMutex) @optional() private _mainMutex: AsyncMutex | null,
+                @inject(TYPES_IDX.SubTaskMutex) @optional() private _subMutex: AsyncMutex | null,
                 @inject(TYPES_IDX.MQControlAPIClient) private _mqControlAPI: MQControlAPIClient) {
         this._exchangeName = `${TASK_EXCHANGE}_${this.mode}`;
-        this._queueName = `${TASK_QUEUE}_${this.mode}`;
-        this._taskRoutingKey = `${TASK_ROUTING_KEY}_${this.mode}`;
+        this._mainQueueName = `${TASK_QUEUE}_main_${this.mode}`;
+        this._subQueueName = `${TASK_QUEUE}_sub_${this.mode}`;
+        this._mainRoutingKey = `${TASK_ROUTING_KEY}_main_${this.mode}`;
+        this._subRoutingKey = `${TASK_ROUTING_KEY}_sub_${this.mode}`;
         if (this._config.amqpServerUrl()) {
             const urlObj = new URL(this._config.amqpServerUrl());
             this._vhost = urlObj.pathname.substring(1);
@@ -72,26 +79,49 @@ export class TaskOrchestra {
      * because RascalImpl creates the broker lazily on the first consume().
      */
     public async initMQ(): Promise<void> {
-        if (this._mutex) {
-            this._mutex.registerMode(this.mode);
+        if (this._mainMutex) {
+            this._mainMutex.registerMode(this.mode);
         }
-        await this._mqService.initPublisher(this._exchangeName, 'direct', this._taskRoutingKey);
-        await this._mqService.initConsumer(this._exchangeName, 'direct', this._queueName, this._taskRoutingKey);
+        if (this._subMutex) {
+            this._subMutex.registerMode(this.mode);
+        }
+        await this._mqService.initPublisher(this._exchangeName, 'direct', this._mainRoutingKey);
+        await this._mqService.initPublisher(this._exchangeName, 'direct', this._subRoutingKey);
+        await this._mqService.initConsumer(this._exchangeName, 'direct', this._mainQueueName, this._mainRoutingKey);
+        await this._mqService.initConsumer(this._exchangeName, 'direct', this._subQueueName, this._subRoutingKey);
     }
 
     public async start(scraper: Scraper): Promise<void> {
-        let actualInterval = this._taskTimingFactory(this._config.getMinInterval());
+        const actualInterval = this._taskTimingFactory(this._config.getMinInterval());
         this._scraper = scraper;
-        await this._mqService.consume(this._queueName, async (msg: MQMessage) => {
+        await this._mqService.consume(this._mainQueueName, this.makeConsumer(true, actualInterval));
+        await this._mqService.consume(this._subQueueName, this.makeConsumer(false, actualInterval));
+        await this.checkMainTask(actualInterval);
+        await this.checkFailedTask();
+    }
+
+    /**
+     * Build a consumer callback bound to a lane (main or sub). Each lane has its own mutex and
+     * its own execution throttle, so at most one main task and one sub task run at any time
+     * across all modes.
+     */
+    private makeConsumer(isMain: boolean, actualInterval: number): (msg: MQMessage) => Promise<boolean> {
+        const mutex = isMain ? this._mainMutex : this._subMutex;
+        return async (msg: MQMessage) => {
             const task = msg as Task;
             const executeTask = async () => {
                 const currentTime = Date.now();
-                if (currentTime < this._lastExeTime + actualInterval) {
+                const lastExeTime = isMain ? this._lastMainExeTime : this._lastSubExeTime;
+                if (currentTime < lastExeTime + actualInterval) {
                     await sleep(2000);
                     return false;
                 }
-                this._lastExeTime = Date.now();
-                let result = await this._scraper.executeTask(task);
+                if (isMain) {
+                    this._lastMainExeTime = Date.now();
+                } else {
+                    this._lastSubExeTime = Date.now();
+                }
+                const result = await this._scraper.executeTask(task);
                 if (result === TaskStatus.NeedRetry) {
                     await this._taskStore.offerFailedTask(task);
                 } else if (result === TaskStatus.Success && task.type === TaskType.MAIN) {
@@ -99,18 +129,32 @@ export class TaskOrchestra {
                 }
                 return true;
             };
-            if (this._mutex) {
-                return await this._mutex.runExclusive(this.mode, executeTask);
-            } else {
-                return await executeTask();
+            try {
+                if (mutex) {
+                    return await mutex.runExclusive(this.mode, executeTask);
+                } else {
+                    return await executeTask();
+                }
+            } catch (err: any) {
+                // An unexpected error escaped task execution (e.g. a storage failure).
+                // We must settle the message; otherwise, with prefetch=1, the unacked message
+                // permanently stalls this queue's consumer. We don't know how to handle it,
+                // so drop it by acking (return true). Undiscovered items will be re-queued by
+                // the next main task run.
+                logger.error('consumer_task_error', {
+                    mode: this.mode,
+                    taskType: task.type,
+                    message: err.message,
+                    stack: err.stack
+                });
+                return true;
             }
-        });
-        await this.checkMainTask(actualInterval);
-        await this.checkFailedTask();
+        };
     }
 
     public async queue(task: Task): Promise<void> {
-        await this._mqService.publish(this._exchangeName, this._taskRoutingKey, task);
+        const routingKey = task.type === TaskType.MAIN ? this._mainRoutingKey : this._subRoutingKey;
+        await this._mqService.publish(this._exchangeName, routingKey, task);
     }
 
     public stop() {
@@ -120,25 +164,18 @@ export class TaskOrchestra {
 
     private async checkMainTask(actualInterval: number): Promise<void> {
         try {
-            const queueInfo = await this._mqControlAPI.getQueueInfo(this._vhost, this._queueName);
+            // The main queue only ever holds a few pagination tasks, so this guard just avoids
+            // stacking a new discovery while pagination is still in flight; it can never be
+            // starved by the (separate) sub-task backlog.
+            const queueInfo = await this._mqControlAPI.getQueueInfo(this._vhost, this._mainQueueName);
             if (queueInfo.len > 0) {
-                logger.info('skip_main_task_check', { mode: this.mode, queueLen: queueInfo.len });
+                logger.info('skip_main_task_seed', { mode: this.mode, queueLen: queueInfo.len });
             } else {
-                const executeMainTask = async () => {
-                    const currentTime = Date.now();
-                    if (currentTime < this._lastExeTime + actualInterval) {
-                        return;
-                    }
-                    const claimed = await this._throttleStore.tryClaimTaskTime(`MainTask_${this.mode}`, this._config.getMinCheckInterval());
-                    if (claimed) {
-                        this._lastExeTime = Date.now();
-                        await this._scraper.executeTask(new CommonTask(TaskType.MAIN));
-                    }
-                };
-                if (this._mutex) {
-                    await this._mutex.runExclusive(this.mode, executeMainTask);
-                } else {
-                    await executeMainTask();
+                const claimed = await this._throttleStore.tryClaimTaskTime(`MainTask_${this.mode}`, this._config.getMinCheckInterval());
+                if (claimed) {
+                    // Seed a page-1 main task; the main consumer executes it (and pagination)
+                    // under the main lane.
+                    await this.queue(new MainTask(TaskType.MAIN));
                 }
             }
         } catch (err: any) {
@@ -152,18 +189,16 @@ export class TaskOrchestra {
     }
 
     private async checkFailedTask(): Promise<void> {
-        const executeFailedTaskCheck = async () => {
+        try {
             const claimed = await this._throttleStore.tryClaimTaskTime(`FailedTask_${this.mode}`, this._config.getMinFailedTaskCheckInterval());
             if (claimed) {
                 while (await this.pickFailedTask()) {
                     await sleep(1000);
                 }
             }
-        };
-        if (this._mutex) {
-            await this._mutex.runExclusive(this.mode, executeFailedTaskCheck);
-        } else {
-            await executeFailedTaskCheck();
+        } catch (err: any) {
+            // Never let an error skip the reschedule below, otherwise the retry loop dies.
+            logger.warn('check_failed_task_iteration_error', { mode: this.mode, message: err.message, stack: err.stack });
         }
         const checkInterval = this._taskTimingFactory(this._config.getMinFailedTaskCheckInterval() / 2);
         this._checkFailedTaskTimerId = setTimeout(() => {
@@ -181,7 +216,10 @@ export class TaskOrchestra {
         if (await this._taskStore.hasFailedTask()) {
             let task = await this._taskStore.pollFailedTask();
             if (task.retryCount > this._config.getMaxRetryCount()) {
-                // drop task
+                // drop task; release any reservation so the item can be rediscovered later.
+                if (this._scraper.handleDroppedTask) {
+                    await this._scraper.handleDroppedTask(task);
+                }
                 logger.warn('drop_task', {
                     mode: this.mode,
                     task

@@ -105,6 +105,81 @@ export class MongodbItemStoreSpec {
         });
     }
 
+    @TestCase(0)
+    @Test('reserveItem should reserve once and dedupe subsequent reservations')
+    public async reserveItemDedup(index: number): Promise<void> {
+        const first = await this._store.reserveItem(Object.assign({}, items[index]));
+        Expect(first).toBe(true);
+        const second = await this._store.reserveItem(Object.assign({}, items[index]));
+        Expect(second).toBe(false);
+        const client = await this._createClient();
+        try {
+            const docs = await client.db(this.dbName).collection(this._collectionName)
+                .find({ id: items[index].id }).toArray();
+            Expect(docs.length).toBe(1);
+            Expect(docs[0].complete).toBe(false);
+        } finally {
+            await client.close();
+        }
+    }
+
+    @TestCase(0)
+    @Test('reserved (incomplete) item should be hidden from filterItemNotStored and searchItem')
+    public async reservedItemHidden(index: number): Promise<void> {
+        await this._store.reserveItem(Object.assign({}, items[index]));
+        const notStored = await this._store.filterItemNotStored([items[index].id]);
+        Expect(notStored.length).toBe(0);
+        const searchResult = await this._store.searchItem(items[index].title);
+        Expect(searchResult.length).toBe(0);
+    }
+
+    @TestCase(0)
+    @Test('putItem after reserveItem should complete the same document without duplicating')
+    public async putItemCompletesReservation(index: number): Promise<void> {
+        await this._store.reserveItem(Object.assign({}, items[index]));
+        const isSuccess = await this._store.putItem(Object.assign({}, items[index]));
+        Expect(isSuccess).toBeTruthy();
+        const client = await this._createClient();
+        try {
+            const docs = await client.db(this.dbName).collection(this._collectionName)
+                .find({ id: items[index].id }).toArray();
+            Expect(docs.length).toBe(1);
+            Expect(docs[0].complete).toBe(true);
+            Expect(docs[0].title).toBe(items[index].title);
+        } finally {
+            await client.close();
+        }
+        const searchResult = await this._store.searchItem(items[index].title);
+        Expect(searchResult.length).toBe(1);
+    }
+
+    @TestCase(0)
+    @Test('putItem should be idempotent for the same id (no duplicate documents)')
+    public async putItemIdempotent(index: number): Promise<void> {
+        await this._store.putItem(Object.assign({}, items[index]));
+        await this._store.putItem(Object.assign({}, items[index]));
+        const client = await this._createClient();
+        try {
+            const docs = await client.db(this.dbName).collection(this._collectionName)
+                .find({ id: items[index].id }).toArray();
+            Expect(docs.length).toBe(1);
+        } finally {
+            await client.close();
+        }
+    }
+
+    @TestCase(0)
+    @Test('deleteItem should release the reservation so the item can be rediscovered')
+    public async deleteItemReleasesReservation(index: number): Promise<void> {
+        await this._store.reserveItem(Object.assign({}, items[index]));
+        const deleted = await this._store.deleteItem(items[index].id);
+        Expect(deleted).toBe(true);
+        const notStored = await this._store.filterItemNotStored([items[index].id]);
+        Expect(notStored.length).toBe(1);
+        const reAcquired = await this._store.reserveItem(Object.assign({}, items[index]));
+        Expect(reAcquired).toBe(true);
+    }
+
     private async _createClient(): Promise<MongoClient> {
         const url = `mongodb://${this._config.getDbUser()}:${this._config.getDbPass()}@${
             this._config.getDbHost()

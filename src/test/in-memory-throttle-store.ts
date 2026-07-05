@@ -19,34 +19,12 @@ import { injectable } from 'inversify';
 
 @injectable()
 export class InMemoryThrottleStore implements ThrottleStore {
-    tasks: { [key: string]:  number};
-    constructor() {
-        this.tasks = {
-            main: 0,
-            failed: 0
-        };
-    }
-
-    getLastMainTaskTime(): Promise<number> {
-        return Promise.resolve(this.tasks.main);
-    }
-    setLastMainTaskTime(): Promise<void> {
-        this.tasks.main = Date.now();
-        return Promise.resolve();
-    }
-    getLastFailedTaskTime(): Promise<number> {
-        return Promise.resolve(this.tasks.failed);
-    }
-    setLastFailedTaskTime(): Promise<void> {
-        this.tasks.failed = Date.now();
-        return Promise.resolve();
-    }
+    private _lastClaims: Map<string, number> = new Map();
 
     tryClaimTaskTime(name: string, minInterval: number): Promise<boolean> {
-        const key = name === 'MainTask' ? 'main' : 'failed';
-        const last = this.tasks[key];
+        const last = this._lastClaims.get(name) || 0;
         if (Date.now() - last >= minInterval) {
-            this.tasks[key] = Date.now();
+            this._lastClaims.set(name, Date.now());
             return Promise.resolve(true);
         }
         return Promise.resolve(false);

@@ -68,8 +68,9 @@ container.bind<RabbitMQService>(TYPES.RabbitMQService).to(RascalImpl).inSingleto
 /* Shared task timing factory */
 container.bind<interfaces.Factory<number>>(TYPES_IDX.TaskTimingFactory).toFactory<number>(TaskTiming);
 
-/* Shared AsyncMutex: ensures only one scraper task runs at a time */
-container.bind<AsyncMutex>(TYPES_IDX.AsyncMutex).to(AsyncMutex).inSingletonScope();
+/* Shared AsyncMutex lanes: at most one main task and one sub task run at a time across all modes */
+container.bind<AsyncMutex>(TYPES_IDX.MainTaskMutex).to(AsyncMutex).inSingletonScope();
+container.bind<AsyncMutex>(TYPES_IDX.SubTaskMutex).to(AsyncMutex).inSingletonScope();
 
 /* MQ management API client for queue depth checks */
 if (config.getAmqpServerType() === AMQPServerType.LavinMQ) {

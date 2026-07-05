@@ -57,7 +57,10 @@ export abstract class BaseScraper<T> implements Scraper {
             }
             this._siteHealthMonitor.reportSuccess();
             for (let item of result.items) {
-                await this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
+                const reserved = await this._store.reserveItem(item);
+                if (reserved) {
+                    await this._taskOrchestra.queue(new SubTask<T>(TaskType.SUB, item));
+                }
             }
             if (result.hasNext && (task as unknown as MainTask).pageNo < this._config.getMaxPageNo()) {
                 let newTask = new MainTask(TaskType.MAIN);
@@ -86,6 +89,19 @@ export abstract class BaseScraper<T> implements Scraper {
 
     public async initMQ(): Promise<void> {
         await this._taskOrchestra.initMQ();
+    }
+
+    /**
+     * Release the reservation for a permanently-dropped sub task so the item can be
+     * rediscovered by a later main task instead of being stuck as an incomplete stub.
+     */
+    public async handleDroppedTask(task: Task): Promise<void> {
+        if (task.type === TaskType.SUB) {
+            const item = (task as SubTask<T>).item;
+            if (item) {
+                await this._store.deleteItem(item.id);
+            }
+        }
     }
 
     public async start(): Promise<any> {

@@ -17,12 +17,9 @@
 import { DatabaseService } from '../service/database-service';
 import { inject, injectable } from 'inversify';
 import { ThrottleStore } from '../TYPES_IDX';
-import { Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { TYPES } from '@irohalab/mira-shared';
 import { ConfigManager } from '../utils/config-manager';
-
-const MAIN_TASK_RECORD_NAME = 'MainTask';
-const FAILED_TASK_RECORD_NAME = 'FailedTask';
 
 interface ThrottleRecord {
     name: string;
@@ -37,50 +34,113 @@ export class MongodbThrottleStore implements ThrottleStore {
     }
 
     private _throttleCollectionName = 'throttle';
+    private _indexReady: Promise<void> | null = null;
 
     constructor(private _databaseService: DatabaseService,
                 @inject(TYPES.ConfigManager) private _config: ConfigManager) {
         this._databaseService.checkCollection([this._throttleCollectionName]);
     }
 
-    public getLastMainTaskTime(): Promise<number> {
-        return this.getLastTaskTime(MAIN_TASK_RECORD_NAME);
-    }
-
-    public async setLastMainTaskTime(): Promise<void> {
-        await this.setLastTaskTime(MAIN_TASK_RECORD_NAME);
-    }
-
-    public getLastFailedTaskTime(): Promise<number> {
-        return this.getLastTaskTime(FAILED_TASK_RECORD_NAME);
-    }
-
-    public async setLastFailedTaskTime(): Promise<void> {
-        await this.setLastTaskTime(FAILED_TASK_RECORD_NAME);
-    }
-
-    public async getLastTaskTime(name: string): Promise<number> {
-        const record = await this.db.collection<{timestamp: number}>(this._throttleCollectionName).findOne({name});
-        return record ? record.timestamp : 0;
-    }
-
-    public async setLastTaskTime(name: string): Promise<void> {
-        await this.db.collection(this._throttleCollectionName).findOneAndUpdate({name},
-            {$set: {timestamp: Date.now()}}, {upsert: true});
+    /**
+     * Atomically check if enough time has passed and claim the slot.
+     * Returns true if this caller won the claim, false if a recent claim is still active.
+     *
+     * The whole decision is a single atomic `findOneAndUpdate` guarded by a unique index on
+     * `name` (see ensureUniqueIndex):
+     *  - record is stale (timestamp <= threshold) -> filter matches -> update -> claimed;
+     *  - record is absent                          -> upsert inserts -> claimed;
+     *  - record exists but is still recent         -> filter misses -> upsert attempts an
+     *    insert that violates the unique index (E11000) -> not claimed.
+     * Because everything happens in one operation, concurrent callers cannot both claim the
+     * same slot: MongoDB serializes writes to the document, so the loser always hits E11000.
+     */
+    public async tryClaimTaskTime(name: string, minInterval: number): Promise<boolean> {
+        await this.ensureUniqueIndex();
+        const now = Date.now();
+        const threshold = now - minInterval;
+        try {
+            const result = await this.db.collection<ThrottleRecord>(this._throttleCollectionName).findOneAndUpdate(
+                { name, timestamp: { $lte: threshold } },
+                { $set: { name, timestamp: now } },
+                { upsert: true, returnDocument: 'after' }
+            );
+            return result != null;
+        } catch (e: any) {
+            if (e && (e.code === 11000 || e.codeName === 'DuplicateKey')) {
+                // A record already exists and its timestamp is still recent:
+                // another caller holds the claim.
+                return false;
+            }
+            throw e;
+        }
     }
 
     /**
-     * Atomically check if enough time has passed and claim the slot.
-     * Returns true if this instance won the race, false if another instance already claimed it.
+     * Ensure the unique index on `name` exists, running the one-time setup at most once per
+     * process. Memoized; on failure the memo is cleared so a later call can retry.
      */
-    public async tryClaimTaskTime(name: string, minInterval: number): Promise<boolean> {
-        const threshold = Date.now() - minInterval;
-        const result = await this.db.collection(this._throttleCollectionName).findOneAndUpdate(
-            { name, $or: [{ timestamp: { $lte: threshold } }, { timestamp: { $exists: false } }] },
-            { $set: { timestamp: Date.now() } },
-            { upsert: true, returnDocument: 'after' }
-        );
-        // If the update matched and modified, this instance won the race
-        return result != null;
+    private ensureUniqueIndex(): Promise<void> {
+        if (!this._indexReady) {
+            this._indexReady = this.doEnsureUniqueIndex().catch((e) => {
+                this._indexReady = null;
+                throw e;
+            });
+        }
+        return this._indexReady;
+    }
+
+    /**
+     * Collapse legacy duplicate throttle records (created by a previous non-atomic
+     * implementation) into a single record per name, then create the unique index on `name`
+     * that tryClaimTaskTime relies on for atomicity.
+     *
+     * This is safe to run concurrently from multiple processes/machines against the same
+     * MongoDB:
+     *  - createIndex is attempted first; if the index already exists it is a no-op, and once
+     *    ANY process succeeds the unique constraint is enforced server-side for everyone,
+     *    which stops further duplicates from being inserted;
+     *  - if duplicates block index creation, they are removed with a DELETE-ONLY pass that
+     *    keeps a deterministically-chosen record and deletes the extras by their specific
+     *    _id. Deleting an already-deleted _id is a no-op, so concurrent runs cannot recreate
+     *    duplicates or delete the surviving record.
+     */
+    private async doEnsureUniqueIndex(): Promise<void> {
+        const collection = this.db.collection<ThrottleRecord>(this._throttleCollectionName);
+        const maxAttempts = 5;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                await collection.createIndex({ name: 1 }, { unique: true });
+                return;
+            } catch (e: any) {
+                if (!(e && (e.code === 11000 || e.codeName === 'DuplicateKey'))) {
+                    throw e;
+                }
+                // Duplicates block the unique index (possibly re-created by a concurrent
+                // claim while the index did not yet exist). Remove the extras and retry.
+                await this.removeDuplicateRecords(collection);
+            }
+        }
+        // Final attempt: surface the error if duplicates still somehow persist.
+        await collection.createIndex({ name: 1 }, { unique: true });
+    }
+
+    /**
+     * Delete-only de-duplication: for every name with more than one record, keep the record
+     * with the newest timestamp (ties broken by _id so the choice is deterministic across
+     * machines) and delete the others by their specific _id. Never inserts, so it is
+     * idempotent and safe under concurrent execution.
+     */
+    private async removeDuplicateRecords(collection: Collection<ThrottleRecord>): Promise<void> {
+        const groups = await collection.aggregate<{ _id: string, ids: ObjectId[] }>([
+            { $sort: { timestamp: -1, _id: 1 } },
+            { $group: { _id: '$name', ids: { $push: '$_id' } } },
+            { $match: { 'ids.1': { $exists: true } } }
+        ]).toArray();
+        for (const group of groups) {
+            const extraIds = group.ids.slice(1);
+            if (extraIds.length > 0) {
+                await collection.deleteMany({ _id: { $in: extraIds } });
+            }
+        }
     }
 }

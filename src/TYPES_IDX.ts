@@ -29,7 +29,8 @@ export const TYPES_IDX = {
     EventLogStore: Symbol.for('EventLogStore'),
     Mode: Symbol.for('Mode'),
     DBName: Symbol.for('DBName'),
-    AsyncMutex: Symbol.for('AsyncMutex'),
+    MainTaskMutex: Symbol.for('MainTaskMutex'),
+    SubTaskMutex: Symbol.for('SubTaskMutex'),
     MQControlAPIClient: Symbol.for('MQControlAPIClient'),
     SiteHealthMonitor: Symbol.for('SiteHealthMonitor')
 };
@@ -60,6 +61,7 @@ export interface ItemStorage<T> {
     getItem(id: T): Promise<Item<T>|null>;
     hasItem(id: T): Promise<boolean>;
     filterItemNotStored(ids: T[]): Promise<T[]>;
+    reserveItem(item: Item<T>): Promise<boolean>;
     putItem(item: Item<T>): Promise<boolean>;
     searchItem(keyword: string): Promise<Item<T>[]>;
 }
@@ -74,10 +76,6 @@ export interface TaskQueue {
 }
 
 export interface ThrottleStore {
-    getLastMainTaskTime(): Promise<number>;
-    setLastMainTaskTime(): Promise<void>;
-    getLastFailedTaskTime(): Promise<number>
-    setLastFailedTaskTime(): Promise<void>;
     tryClaimTaskTime(name: string, minInterval: number): Promise<boolean>;
 }
 
@@ -105,6 +103,13 @@ export interface Scraper {
      * @returns {Promise<boolean>} true, the
      */
     executeTask(task: Task): Promise<TaskStatus>;
+
+    /**
+     * Called when a task is permanently dropped (retries exhausted), so the scraper can
+     * release any reservation it made for the task (e.g. delete the reserved item stub) and
+     * allow the item to be rediscovered later.
+     */
+    handleDroppedTask?(task: Task): Promise<void>;
 }
 
 export const TASK_EXCHANGE = 'task_exchange';
