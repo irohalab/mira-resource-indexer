@@ -47,6 +47,14 @@ export class InMemoryItemStore<T> implements ItemStorage<T> {
         return Promise.resolve(true);
     }
 
+    public reserveItem(item: Item<T>): Promise<boolean> {
+        if (this._itemTable.has(item.id)) {
+            return Promise.resolve(false);
+        }
+        this._itemTable.set(item.id, item);
+        return Promise.resolve(true);
+    }
+
     public searchItem(keyword: string): Promise<Item<T>[]> {
         return undefined;
     }
