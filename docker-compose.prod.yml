@@ -11,7 +11,7 @@ x-web-common:
 services:
   indexer:
     << : *web-common
-    network_mode: host
+    network_mode: "${NETWORK_MODE:-host}"
     command: node --title=indexer dist/main.js
     environment:
       DB_HOST: "${DB_HOST:-store}"
