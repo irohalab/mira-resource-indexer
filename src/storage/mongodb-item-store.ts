@@ -167,13 +167,22 @@ export class MongodbItemStore<T> implements ItemStorage<T> {
      * idempotent and safe to run repeatedly.
      */
     private async removeDuplicateItems(collection: Collection<Item<T>>): Promise<void> {
-        const groups = await collection.aggregate<{ _id: T, ids: ObjectId[] }>([
-            { $sort: { complete: -1, timestamp: -1, _id: 1 } },
-            { $group: { _id: '$id', ids: { $push: '$_id' } } },
-            { $match: { 'ids.1': { $exists: true } } }
+        // First pass: find only the business ids that have more than one document.
+        // This group-only aggregation needs no $sort over the full collection.
+        const duplicateIds = await collection.aggregate<{ _id: T }>([
+            { $group: { _id: '$id', count: { $sum: 1 } } },
+            { $match: { count: { $gt: 1 } } }
         ]).toArray();
-        for (const group of groups) {
-            const extraIds = group.ids.slice(1);
+
+        // Second pass: for each duplicated id (typically a tiny set), sort only those
+        // few documents and delete all but the best one (complete desc, timestamp desc).
+        for (const { _id: id } of duplicateIds) {
+            const docs = await collection
+                .find({ id } as any)
+                .sort({ complete: -1, timestamp: -1, _id: 1 })
+                .project({ _id: 1 })
+                .toArray();
+            const extraIds = docs.slice(1).map(d => d._id);
             if (extraIds.length > 0) {
                 await collection.deleteMany({ _id: { $in: extraIds } });
             }
