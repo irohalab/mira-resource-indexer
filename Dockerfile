@@ -1,4 +1,4 @@
-FROM node:lts-slim AS base
+FROM node:24-slim AS base
 WORKDIR /irohalab/indexer
 
 FROM base AS dev
