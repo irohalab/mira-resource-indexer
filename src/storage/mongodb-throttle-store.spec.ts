@@ -53,7 +53,6 @@ export class MongodbThrottleStoreSpec {
         this._container.bind<Sentry>(TYPES.Sentry).to(FakeSentry).inSingletonScope();
         this._config = this._container.get<ConfigManager>(TYPES.ConfigManager);
         this.dbName = this._container.get(TYPES_IDX.DBName);
-        (this._config as FakeConfigManager).dbPort = 27017;
     }
 
     @Setup

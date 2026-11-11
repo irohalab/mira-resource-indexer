@@ -10,7 +10,16 @@ on:
 
 jobs:
   test-job:
-    runs-on: ubuntu-latest
+    # MongoDB 8 cannot start on kernels 6.19 through 7.0.13 (SERVER-121912).
+    runs-on: ubuntu-22.04
+    env:
+      INDEXER_MODE: dmhy
+      DB_HOST: 127.0.0.1
+      DB_PORT: 27017
+      DB_USER: admin
+      DB_NAME: test_indexer
+      DB_PASS: 123456
+      AUTH_SOURCE: admin
     # if: contains(github.event.pull_request.labels.*.name, 'Ready To Test')
     strategy:
       matrix:
@@ -31,25 +40,13 @@ jobs:
       uses: hoverkraft-tech/compose-action@v2.0.2
       with:
         compose-file: ./docker-compose.yml
+        up-flags: --wait --wait-timeout 120
         services: |
           mongo
           rabbitmq
-      env:
-        INDEXER_MODE: dmhy
-        DB_MODE: localhost
-        DB_PORT: 27017
-        DB_USER: admin
-        DB_NAME: dmhy_indexer
-        DB_PASS: 123456
         
     - name: Unit test and code covergae
       run: |
-        export INDEXER_MODE=dmhy
-        export DB_MODE=localhost
-        export DB_PORT=27017
-        export DB_USER=admin
-        export DB_NAME=dmhy_indexer
-        export DB_PASS=123456
         export AMQP_URL=amqp://ciuser:cipassword@localhost:5672/
         npm run check-coverage
 

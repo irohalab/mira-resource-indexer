@@ -22,19 +22,36 @@ exact patch; apply tested 8.0 patch updates regularly. The health check uses
 `mongosh`, since modern MongoDB images no longer include the legacy `mongo`
 shell.
 
-Authentication remains disabled to preserve the existing local development
-deployment. Existing users and credentials are preserved, and no different
-administrator is initialized. Clients that explicitly authenticate must
-still use valid existing credentials. Do not expose this unauthenticated
-service on external interfaces.
+Authentication is enabled. On an empty volume, the image creates an
+administrator in `admin` using `DB_USER` and `DB_PASS` (development defaults:
+`admin` / `123456`). Set these variables before starting Compose and use
+`AUTH_SOURCE=admin` for that administrator. The health check authenticates
+and verifies that authorization is enabled before the application starts.
+
+Existing volumes retain their users and passwords: initialization variables
+do not create or reset users on populated volumes. Set `DB_USER` and
+`DB_PASS` to an existing administrator's credentials before restarting.
+If the volume has no users, provision an administrator through MongoDB's
+localhost exception before starting the application. Do not delete the
+volume to reset credentials.
+
+MongoDB 8 cannot start on Linux kernels 6.19 through 7.0.13 because of
+[SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912). Docker shares
+the host kernel, so changing only the container's distribution does not
+help. CI uses `ubuntu-22.04`, whose current runner kernel is 6.8, and waits
+up to 120 seconds for Compose readiness. This is a temporary runner pin:
+Ubuntu 22.04 runners retire in April 2027. Revisit it when MongoDB supports
+the newer runner kernel. The database tests use real MongoDB.
 
 Start only MongoDB when RabbitMQ already runs elsewhere on the host:
 
 ```bash
 docker compose up -d --no-deps --wait mongo
 docker compose ps mongo
-docker compose exec -T mongo mongosh --quiet --host 127.0.0.1 --eval \
-  'db.getSiblingDB("admin").runCommand({ getParameter: 1, featureCompatibilityVersion: 1 })'
+docker compose exec -T mongo sh -c 'mongosh --quiet --host 127.0.0.1 \
+  --port "$DB_PORT" --username "$MONGO_INITDB_ROOT_USERNAME" \
+  --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin \
+  --eval '\''db.adminCommand({ getParameter: 1, featureCompatibilityVersion: 1 })'\'''
 ```
 
 The feature compatibility version (FCV) should be `8.0`. Keep the native
@@ -47,8 +64,10 @@ current image rather than old host-installed MongoDB tools:
 umask 077
 backup_dir="$HOME/backups/mongodb/8.0-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$backup_dir"
-docker compose exec -T mongo mongodump --host 127.0.0.1 --port 27017 \
-  --gzip --archive >"$backup_dir/mongodb.archive.gz"
+docker compose exec -T mongo sh -c 'mongodump --host 127.0.0.1 \
+  --port "${DB_PORT:-27017}" --username "$MONGO_INITDB_ROOT_USERNAME" \
+  --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin \
+  --gzip --archive' >"$backup_dir/mongodb.archive.gz"
 sha256sum "$backup_dir/mongodb.archive.gz" >"$backup_dir/mongodb.archive.gz.sha256"
 ```
 
