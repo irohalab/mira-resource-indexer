@@ -1,11 +1,37 @@
 services:
   mongo:
-    image: mongo:4.2.2
+    image: mongo:8.0.34
     network_mode: host
+    restart: unless-stopped
+    stop_grace_period: 2m
     environment:
-      MONGO_INITDB_ROOT_USERNAME: "${DB_USER-admin}"
-      MONGO_INITDB_ROOT_PASSWORD: "${DB_PASS-123456}"
-      MONGO_INITDB_DATABASE: "${DB_NAME-dmhy_indexer}"
+      DB_PORT: "${DB_PORT:-27017}"
+      MONGO_INITDB_ROOT_USERNAME: "${DB_USER:-admin}"
+      MONGO_INITDB_ROOT_PASSWORD: "${DB_PASS:-123456}"
+      MONGO_INITDB_DATABASE: "${DB_NAME:-dmhy_indexer}"
+    command:
+      - mongod
+      - --bind_ip
+      - 127.0.0.1
+      - --port
+      - "${DB_PORT:-27017}"
+      - --auth
+    volumes:
+      - mongo_data_v8:/data/db
+    healthcheck:
+      # The temporary initialization server must not count as ready.
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --host 127.0.0.1 --port "${DB_PORT:-27017}"
+          --username "$$MONGO_INITDB_ROOT_USERNAME"
+          --password "$$MONGO_INITDB_ROOT_PASSWORD"
+          --authenticationDatabase admin
+          --eval 'quit(db.adminCommand({ getCmdLineOpts: 1 }).parsed.security?.authorization === "enabled" ? 0 : 1)'
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
   rabbitmq:
     image: "rabbitmq:4.1"
     network_mode: host
@@ -26,7 +52,7 @@ services:
         max-file: "3"
     environment:
       MODE_LIST: "${MODE_LIST:-dmhy}"
-      DB_HOST: "${DB_HOST:-mongo}"
+      DB_HOST: "${DB_HOST:-127.0.0.1}"
       DB_PORT: "${DB_PORT:-27017}"
       DB_USER: "${DB_USER:-admin}"
       DB_PASS: "${DB_PASS:-123456}"
@@ -48,5 +74,10 @@ services:
       - "/irohalab/indexer/node_modules"
       - "/irohalab/indexer/dist"
     depends_on:
-      - mongo
-      - rabbitmq
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+volumes:
+  mongo_data_v8:

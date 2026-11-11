@@ -2,14 +2,18 @@
 
 A part of Project Mira
 
-requirements: mongodb
+requirements: Node.js 24 LTS, MongoDB
+
+CI and the default Docker image use Node.js 24 LTS, which supports
+MongoDB driver 7 and Puppeteer 25. On Node.js 24, the CommonJS build can
+load Puppeteer's ESM package without changing the project's module format.
 
 Indexer can be configured to different modes: dmhy, Bangumi.moe, nyaa, acg.rip
 
 ## Set environment variables
 
 - INDEXER_MODE what mode this indexer will work at. set `dmhy` or `bangumi_moe` or `nyaa` or `acg_rip`
-- DB_HOST host for database instance, default is `mongo`
+- DB_HOST host for database instance, default is `mongo`; the host-network Docker Compose configuration uses `127.0.0.1`
 - DB_PORT port for database, default is `27017`
 - DB_USER user for database access, default is `admin`
 - DB_NAME database name, default is `dmhy_indexer`
