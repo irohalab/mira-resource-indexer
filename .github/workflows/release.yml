@@ -21,8 +21,8 @@ jobs:
     - name: Create a release
       run: |
         export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
-        export SENTRY_ORG=${{ secrets.SENTRY_ORG }}
-        export SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
+        export SENTRY_ORG=${{ vars.SENTRY_ORG }}
+        export SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
         export SENTRY_URL=${{ vars.GLITCHTIP_URL }}
         export VERSION=indexer@$(git describe --tags)
         glitchtip-cli releases new $VERSION
@@ -64,8 +64,8 @@ jobs:
     - name: Finalize release
       run: |
         export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
-        export SENTRY_ORG=${{ secrets.SENTRY_ORG }}
-        export SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
+        export SENTRY_ORG=${{ vars.SENTRY_ORG }}
+        export SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
         export SENTRY_URL=${{ vars.GLITCHTIP_URL }}
         export VERSION=indexer@$(git describe --tags)
         glitchtip-cli releases finalize $VERSION
